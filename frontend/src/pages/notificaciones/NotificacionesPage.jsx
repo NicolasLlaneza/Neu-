@@ -6,6 +6,7 @@ import Input from '@/components/Input'
 import Select from '@/components/Select'
 import Textarea from '@/components/Textarea'
 import Modal from '@/components/Modal'
+import SearchSelect from '@/components/SearchSelect'
 
 const estadoConfig = {
   pendiente: { label: 'Pendiente', color: '#d97706' },
@@ -97,17 +98,14 @@ function NotificacionModal({ notificacion, clientes, onSave, onClose }) {
     <Modal title={notificacion ? 'Editar notificación' : 'Nueva notificación'} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
 
-        <Select
+        <SearchSelect
           label="Cliente"
           value={form.cliente_id}
-          onChange={e => handleCliente(e.target.value)}
+          onChange={handleCliente}
           error={errors.cliente_id}
-        >
-          <option value="">Seleccioná un cliente</option>
-          {clientes.map(c => (
-            <option key={c.id} value={c.id}>{c.nombre}</option>
-          ))}
-        </Select>
+          placeholder="Buscar cliente..."
+          options={clientes.map(c => ({ value: c.id, label: c.nombre }))}
+        />
 
         {form.cliente_id && (
           <Select

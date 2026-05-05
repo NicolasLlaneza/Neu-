@@ -6,6 +6,7 @@ import Input from '@/components/Input'
 import Select from '@/components/Select'
 import Textarea from '@/components/Textarea'
 import Modal from '@/components/Modal'
+import SearchSelect from '@/components/SearchSelect'
 
 const TIPOS_SERVICIO = [
   'Cambio de neumáticos',
@@ -95,19 +96,17 @@ function ServicioModal({ servicio, vehiculos, onSave, onClose }) {
     <Modal title={servicio ? 'Editar servicio' : 'Nuevo servicio'} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
 
-        <Select
+        <SearchSelect
           label="Vehículo"
           value={form.vehiculo_id}
-          onChange={e => handleVehiculo(e.target.value)}
+          onChange={handleVehiculo}
           error={errors.vehiculo_id}
-        >
-          <option value="">Seleccioná un vehículo</option>
-          {vehiculos.map(v => (
-            <option key={v.id} value={v.id}>
-              {v.patente} — {v.marca} {v.modelo} ({v.clientes?.nombre})
-            </option>
-          ))}
-        </Select>
+          placeholder="Buscar por patente, marca o cliente..."
+          options={vehiculos.map(v => ({
+            value: v.id,
+            label: `${v.patente} — ${v.marca} ${v.modelo} (${v.clientes?.nombre})`,
+          }))}
+        />
 
         {vehiculoSeleccionado && (
           <p className="text-xs text-gray-200 -mt-2">

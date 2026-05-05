@@ -7,7 +7,7 @@ import Select from '@/components/Select'
 import Modal from '@/components/Modal'
 
 const tipoLabels = {
-  'auto-viejo': 'Auto antiguo',
+  'auto-viejo': 'Auto',
   'auto-nuevo': 'Auto',
   'moto-nueva': 'Moto',
 }
