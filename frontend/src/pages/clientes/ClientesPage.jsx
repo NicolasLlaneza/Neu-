@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import logger from '@/lib/logger'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
@@ -100,11 +101,13 @@ function ClienteModal({ cliente, onSave, onClose }) {
 
 // ─── Página principal ──────────────────────────────────────────────────
 export default function ClientesPage() {
-  const [clientes, setClientes]   = useState([])
-  const [loading, setLoading]     = useState(true)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editing, setEditing]     = useState(null)
-  const [deletingId, setDeletingId] = useState(null)
+  const [clientes, setClientes]       = useState([])
+  const [loading, setLoading]         = useState(true)
+  const [modalOpen, setModalOpen]     = useState(false)
+  const [editing, setEditing]         = useState(null)
+  const [deletingId, setDeletingId]   = useState(null)
+  const [search, setSearch]           = useState('')
+  const [showInactive, setShowInactive] = useState(false)
 
   useEffect(() => { fetchClientes() }, [])
 
@@ -113,7 +116,6 @@ export default function ClientesPage() {
     const { data } = await supabase
       .from('clientes')
       .select('*')
-      .eq('activo', true)
       .order('created_at', { ascending: false })
     setClientes(data ?? [])
     setLoading(false)
@@ -126,12 +128,12 @@ export default function ClientesPage() {
     if (editing) {
       const { data, error } = await supabase
         .from('clientes').update(form).eq('id', editing.id).select().single()
-      if (error) { console.error('Error al editar:', error); return error }
+      if (error) { logger.error('Error al editar:', error); return error }
       setClientes(prev => prev.map(c => c.id === editing.id ? data : c))
     } else {
       const { data, error } = await supabase
         .from('clientes').insert(form).select().single()
-      if (error) { console.error('Error al crear:', error); return error }
+      if (error) { logger.error('Error al crear:', error); return error }
       setClientes(prev => [data, ...prev])
     }
     setModalOpen(false)
@@ -142,26 +144,59 @@ export default function ClientesPage() {
       .from('clientes')
       .update({ activo: false, fecha_baja: new Date().toISOString() })
       .eq('id', id)
-    setClientes(prev => prev.filter(c => c.id !== id))
+    setClientes(prev => prev.map(c => c.id === id ? { ...c, activo: false } : c))
     setDeletingId(null)
   }
+
+  const inactivos = clientes.filter(c => !c.activo).length
+  const filtrados = clientes
+    .filter(c => showInactive ? true : c.activo)
+    .filter(c => {
+      if (!search.trim()) return true
+      const q = search.toLowerCase()
+      return c.nombre.toLowerCase().includes(q) ||
+             c.telefono.toLowerCase().includes(q) ||
+             (c.email ?? '').toLowerCase().includes(q)
+    })
 
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <p className="text-gray-200 text-sm">
-          {loading ? '...' : `${clientes.length} cliente${clientes.length !== 1 ? 's' : ''} registrado${clientes.length !== 1 ? 's' : ''}`}
+          {loading ? '...' : `${filtrados.length} cliente${filtrados.length !== 1 ? 's' : ''}`}
         </p>
         <Button onClick={openCreate}>
           <Plus size={15} /> Nuevo cliente
         </Button>
       </div>
 
+      {/* Barra de búsqueda y filtros */}
+      <div className="flex items-center gap-3 mb-4">
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar por nombre, teléfono o email..."
+          className="flex-1 bg-dark-300 border border-dark-400 text-gray-100 text-sm rounded px-3 py-2 outline-none focus:border-red transition-colors placeholder:text-gray-300"
+        />
+        {inactivos > 0 && (
+          <button
+            onClick={() => setShowInactive(v => !v)}
+            className={`text-xs px-3 py-2 rounded border transition-colors whitespace-nowrap ${
+              showInactive
+                ? 'border-red text-red bg-red/10'
+                : 'border-dark-400 text-gray-200 hover:border-gray-200'
+            }`}
+          >
+            {showInactive ? 'Ocultar bajas' : `Ver bajas (${inactivos})`}
+          </button>
+        )}
+      </div>
+
       {/* Tabla */}
       {loading ? (
         <p className="text-gray-200 text-sm">Cargando...</p>
-      ) : clientes.length === 0 ? (
+      ) : filtrados.length === 0 ? (
         <p className="text-gray-200 text-sm">No hay clientes registrados.</p>
       ) : (
         <div className="bg-dark-200 border border-dark-400 rounded-lg overflow-hidden">
@@ -176,9 +211,12 @@ export default function ClientesPage() {
               </tr>
             </thead>
             <tbody>
-              {clientes.map(cliente => (
-                <tr key={cliente.id} className="border-b border-dark-400 last:border-0 hover:bg-dark-300 transition-colors">
-                  <td className="px-4 py-3 text-gray-100 font-medium">{cliente.nombre}</td>
+              {filtrados.map(cliente => (
+                <tr key={cliente.id} className={`border-b border-dark-400 last:border-0 hover:bg-dark-300 transition-colors ${!cliente.activo ? 'opacity-50' : ''}`}>
+                  <td className="px-4 py-3 text-gray-100 font-medium">
+                    {cliente.nombre}
+                    {!cliente.activo && <span className="ml-2 text-xs text-gray-300 border border-dark-400 px-1.5 py-0.5 rounded">Baja</span>}
+                  </td>
                   <td className="px-4 py-3 text-gray-200">{cliente.telefono}</td>
                   <td className="px-4 py-3 text-gray-200">{cliente.email ?? '—'}</td>
                   <td className="px-4 py-3 text-gray-200">{cliente.canal_preferido}</td>

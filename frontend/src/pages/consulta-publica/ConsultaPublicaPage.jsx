@@ -136,11 +136,6 @@ export default function ConsultaPublicaPage() {
               <p className="text-gray-200 text-sm">
                 {tipoLabels[resultado.tipo_patente] ?? resultado.tipo_patente}
               </p>
-              {resultado.cliente_nombre && (
-                <p className="text-gray-200 text-sm pt-1 border-t border-dark-400 mt-2">
-                  Titular: <span className="text-gray-100 font-medium">{resultado.cliente_nombre}</span>
-                </p>
-              )}
             </div>
 
             <div className="flex gap-3">

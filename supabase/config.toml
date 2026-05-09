@@ -1,0 +1,2 @@
+[functions.process-notifications]
+schedule = "*/5 * * * *"  # Cada 5 minutos

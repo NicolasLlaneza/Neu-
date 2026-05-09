@@ -49,6 +49,31 @@ $$;
 
 
 -- ─────────────────────────────────────────────────────────────────────
+-- TRIGGER DE AUDITORÍA
+-- Setea automáticamente el usuario que crea cada registro.
+-- Sobreescribe cualquier valor enviado desde el cliente para evitar
+-- que los campos de auditoría sean falsificados.
+-- ─────────────────────────────────────────────────────────────────────
+create or replace function public.set_audit_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if TG_TABLE_NAME = 'clientes' then
+    new.creado_por := auth.uid();
+  elsif TG_TABLE_NAME = 'servicios' then
+    new.registrado_por := auth.uid();
+  elsif TG_TABLE_NAME = 'notificaciones' then
+    new.programado_por := auth.uid();
+  end if;
+  return new;
+end;
+$$;
+
+
+-- ─────────────────────────────────────────────────────────────────────
 -- TABLA: profiles
 -- Datos extra de los administradores
 -- Vinculada con auth.users de Supabase Auth
@@ -120,6 +145,10 @@ create policy "Admins actualizan clientes"
   on public.clientes for update
   using (public.is_active_admin());
 
+create trigger tr_clientes_audit
+  before insert on public.clientes
+  for each row execute function public.set_audit_user();
+
 
 -- ─────────────────────────────────────────────────────────────────────
 -- TABLA: vehiculos
@@ -149,15 +178,14 @@ comment on column public.vehiculos.tipo_patente is
 
 alter table public.vehiculos enable row level security;
 
--- Admins autenticados ven vehículos activos
-create policy "Admins ven vehiculos activos"
+-- Admins autenticados ven todos los vehículos (activos e inactivos)
+create policy "Admins ven vehiculos"
   on public.vehiculos for select
-  using (public.is_active_admin() and activo = true);
+  using (public.is_active_admin());
 
--- Consulta pública por patente (sin autenticación)
-create policy "Cualquiera puede consultar por patente"
-  on public.vehiculos for select
-  using (activo = true);
+-- NOTA: la consulta pública de vehículos se maneja exclusivamente a través
+-- de la función consulta_publica() con SECURITY DEFINER, que bypasea RLS.
+-- No se necesita una política abierta para usuarios anónimos.
 
 create policy "Admins crean vehiculos"
   on public.vehiculos for insert
@@ -211,6 +239,10 @@ create policy "Admins crean servicios"
 create policy "Admins actualizan servicios"
   on public.servicios for update
   using (public.is_active_admin());
+
+create trigger tr_servicios_audit
+  before insert on public.servicios
+  for each row execute function public.set_audit_user();
 
 
 -- ─────────────────────────────────────────────────────────────────────
@@ -304,6 +336,10 @@ create policy "Admins cancelan notificaciones"
   on public.notificaciones for delete
   using (public.is_active_admin());
 
+create trigger tr_notificaciones_audit
+  before insert on public.notificaciones
+  for each row execute function public.set_audit_user();
+
 
 -- ─────────────────────────────────────────────────────────────────────
 -- FUNCIÓN PÚBLICA: consulta_publica
@@ -317,9 +353,8 @@ security definer
 set search_path = public
 as $$
 declare
-  v_vehiculo       record;
-  v_cliente_nombre text;
-  v_servicios      json;
+  v_vehiculo  record;
+  v_servicios json;
 begin
   p_patente := upper(replace(p_patente, ' ', ''));
 
@@ -331,9 +366,8 @@ begin
     return null;
   end if;
 
-  select nombre into v_cliente_nombre
-  from public.clientes
-  where id = v_vehiculo.cliente_id;
+  -- NOTA: cliente_nombre intencionalmente excluido del retorno
+  -- para proteger datos personales del titular (Ley 25.326)
 
   select json_agg(
     json_build_object(
@@ -348,13 +382,12 @@ begin
   where vehiculo_id = v_vehiculo.id;
 
   return json_build_object(
-    'patente',        v_vehiculo.patente,
-    'marca',          v_vehiculo.marca,
-    'modelo',         v_vehiculo.modelo,
-    'anio',           v_vehiculo.anio,
-    'tipo_patente',   v_vehiculo.tipo_patente,
-    'cliente_nombre', v_cliente_nombre,
-    'servicios',      coalesce(v_servicios, '[]'::json)
+    'patente',      v_vehiculo.patente,
+    'marca',        v_vehiculo.marca,
+    'modelo',       v_vehiculo.modelo,
+    'anio',         v_vehiculo.anio,
+    'tipo_patente', v_vehiculo.tipo_patente,
+    'servicios',    coalesce(v_servicios, '[]'::json)
   );
 end;
 $$;

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import logger from '@/lib/logger'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
@@ -184,6 +185,7 @@ export default function NotificacionesPage() {
   const [modalOpen, setModalOpen]           = useState(false)
   const [editing, setEditing]               = useState(null)
   const [deletingId, setDeletingId]         = useState(null)
+  const [search, setSearch]                 = useState('')
 
   useEffect(() => {
     fetchNotificaciones()
@@ -217,13 +219,13 @@ export default function NotificacionesPage() {
       const { data, error } = await supabase
         .from('notificaciones').update(form).eq('id', editing.id)
         .select('*, clientes(nombre), servicios(tipo, vehiculos(patente))').single()
-      if (error) { console.error(error); return }
+      if (error) { logger.error(error); return }
       setNotificaciones(prev => prev.map(n => n.id === editing.id ? data : n))
     } else {
       const { data, error } = await supabase
         .from('notificaciones').insert(form)
         .select('*, clientes(nombre), servicios(tipo, vehiculos(patente))').single()
-      if (error) { console.error(error); return }
+      if (error) { logger.error(error); return }
       setNotificaciones(prev =>
         [...prev, data].sort((a, b) => a.fecha_envio.localeCompare(b.fecha_envio))
       )
@@ -239,13 +241,21 @@ export default function NotificacionesPage() {
 
   const pendientes = notificaciones.filter(n => n.estado === 'pendiente').length
 
+  const filtradas = notificaciones.filter(n => {
+    if (!search.trim()) return true
+    const q = search.toLowerCase()
+    return (n.clientes?.nombre ?? '').toLowerCase().includes(q) ||
+           n.motivo.toLowerCase().includes(q)
+  })
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
         <p className="text-gray-200 text-sm">
           {loading ? '...' : (
             <>
-              {notificaciones.length} notificacion{notificaciones.length !== 1 ? 'es' : ''}
+              {filtradas.length} notificacion{filtradas.length !== 1 ? 'es' : ''}
               {pendientes > 0 && (
                 <span
                   className="ml-2 px-2 py-0.5 rounded text-xs font-semibold"
@@ -262,9 +272,19 @@ export default function NotificacionesPage() {
         </Button>
       </div>
 
+      {/* Barra de búsqueda */}
+      <div className="mb-4">
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar por cliente o motivo..."
+          className="w-full bg-dark-300 border border-dark-400 text-gray-100 text-sm rounded px-3 py-2 outline-none focus:border-red transition-colors placeholder:text-gray-300"
+        />
+      </div>
+
       {loading ? (
         <p className="text-gray-200 text-sm">Cargando...</p>
-      ) : notificaciones.length === 0 ? (
+      ) : filtradas.length === 0 ? (
         <p className="text-gray-200 text-sm">No hay notificaciones registradas.</p>
       ) : (
         <div className="bg-dark-200 border border-dark-400 rounded-lg overflow-hidden">
@@ -279,7 +299,7 @@ export default function NotificacionesPage() {
               </tr>
             </thead>
             <tbody>
-              {notificaciones.map(n => (
+              {filtradas.map(n => (
                 <tr key={n.id} className="border-b border-dark-400 last:border-0 hover:bg-dark-300 transition-colors">
                   <td className="px-4 py-3 text-gray-100 font-medium">{n.clientes?.nombre ?? '—'}</td>
                   <td className="px-4 py-3 text-gray-200">{n.motivo}</td>

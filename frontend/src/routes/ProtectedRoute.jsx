@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 
 export default function ProtectedRoute({ children }) {
-  const { session, loading } = useAuth()
+  const { session, profile, loading } = useAuth()
 
   if (loading) return (
     <div className="min-h-screen bg-dark flex items-center justify-center">
@@ -11,6 +11,9 @@ export default function ProtectedRoute({ children }) {
   )
 
   if (!session) return <Navigate to="/login" replace />
+
+  // Perfil inactivo: sesión válida pero admin dado de baja
+  if (profile && !profile.activo) return <Navigate to="/login" replace />
 
   return children
 }

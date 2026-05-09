@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import logger from '@/lib/logger'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
@@ -152,12 +153,14 @@ function VehiculoModal({ vehiculo, clientes, onSave, onClose }) {
 
 // ─── Página principal ───────────────────────────────────────────────────
 export default function VehiculosPage() {
-  const [vehiculos, setVehiculos]   = useState([])
-  const [clientes, setClientes]     = useState([])
-  const [loading, setLoading]       = useState(true)
-  const [modalOpen, setModalOpen]   = useState(false)
-  const [editing, setEditing]       = useState(null)
-  const [deletingId, setDeletingId] = useState(null)
+  const [vehiculos, setVehiculos]       = useState([])
+  const [clientes, setClientes]         = useState([])
+  const [loading, setLoading]           = useState(true)
+  const [modalOpen, setModalOpen]       = useState(false)
+  const [editing, setEditing]           = useState(null)
+  const [deletingId, setDeletingId]     = useState(null)
+  const [search, setSearch]             = useState('')
+  const [showInactive, setShowInactive] = useState(false)
 
   useEffect(() => {
     fetchVehiculos()
@@ -169,7 +172,6 @@ export default function VehiculosPage() {
     const { data } = await supabase
       .from('vehiculos')
       .select('*, clientes(nombre)')
-      .eq('activo', true)
       .order('created_at', { ascending: false })
     setVehiculos(data ?? [])
     setLoading(false)
@@ -192,13 +194,13 @@ export default function VehiculosPage() {
       const { data, error } = await supabase
         .from('vehiculos').update(form).eq('id', editing.id)
         .select('*, clientes(nombre)').single()
-      if (error) { console.error(error); return }
+      if (error) { logger.error(error); return }
       setVehiculos(prev => prev.map(v => v.id === editing.id ? data : v))
     } else {
       const { data, error } = await supabase
         .from('vehiculos').insert(form)
         .select('*, clientes(nombre)').single()
-      if (error) { console.error(error); return }
+      if (error) { logger.error(error); return }
       setVehiculos(prev => [data, ...prev])
     }
     setModalOpen(false)
@@ -209,24 +211,59 @@ export default function VehiculosPage() {
       .from('vehiculos')
       .update({ activo: false })
       .eq('id', id)
-    setVehiculos(prev => prev.filter(v => v.id !== id))
+    setVehiculos(prev => prev.map(v => v.id === id ? { ...v, activo: false } : v))
     setDeletingId(null)
   }
 
+  const inactivos = vehiculos.filter(v => !v.activo).length
+  const filtrados = vehiculos
+    .filter(v => showInactive ? true : v.activo)
+    .filter(v => {
+      if (!search.trim()) return true
+      const q = search.toLowerCase()
+      return v.patente.toLowerCase().includes(q) ||
+             v.marca.toLowerCase().includes(q) ||
+             v.modelo.toLowerCase().includes(q) ||
+             (v.clientes?.nombre ?? '').toLowerCase().includes(q)
+    })
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
         <p className="text-gray-200 text-sm">
-          {loading ? '...' : `${vehiculos.length} vehículo${vehiculos.length !== 1 ? 's' : ''} registrado${vehiculos.length !== 1 ? 's' : ''}`}
+          {loading ? '...' : `${filtrados.length} vehículo${filtrados.length !== 1 ? 's' : ''}`}
         </p>
         <Button onClick={openCreate}>
           <Plus size={15} /> Nuevo vehículo
         </Button>
       </div>
 
+      {/* Barra de búsqueda y filtros */}
+      <div className="flex items-center gap-3 mb-4">
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar por patente, marca, modelo o cliente..."
+          className="flex-1 bg-dark-300 border border-dark-400 text-gray-100 text-sm rounded px-3 py-2 outline-none focus:border-red transition-colors placeholder:text-gray-300"
+        />
+        {inactivos > 0 && (
+          <button
+            onClick={() => setShowInactive(v => !v)}
+            className={`text-xs px-3 py-2 rounded border transition-colors whitespace-nowrap ${
+              showInactive
+                ? 'border-red text-red bg-red/10'
+                : 'border-dark-400 text-gray-200 hover:border-gray-200'
+            }`}
+          >
+            {showInactive ? 'Ocultar bajas' : `Ver bajas (${inactivos})`}
+          </button>
+        )}
+      </div>
+
       {loading ? (
         <p className="text-gray-200 text-sm">Cargando...</p>
-      ) : vehiculos.length === 0 ? (
+      ) : filtrados.length === 0 ? (
         <p className="text-gray-200 text-sm">No hay vehículos registrados.</p>
       ) : (
         <div className="bg-dark-200 border border-dark-400 rounded-lg overflow-hidden">
@@ -241,10 +278,13 @@ export default function VehiculosPage() {
               </tr>
             </thead>
             <tbody>
-              {vehiculos.map(v => (
-                <tr key={v.id} className="border-b border-dark-400 last:border-0 hover:bg-dark-300 transition-colors">
+              {filtrados.map(v => (
+                <tr key={v.id} className={`border-b border-dark-400 last:border-0 hover:bg-dark-300 transition-colors ${!v.activo ? 'opacity-50' : ''}`}>
                   <td className="px-4 py-3 text-gray-100 font-medium">{v.clientes?.nombre ?? '—'}</td>
-                  <td className="px-4 py-3 text-gray-100 font-mono tracking-wider">{v.patente}</td>
+                  <td className="px-4 py-3 text-gray-100 font-mono tracking-wider">
+                    {v.patente}
+                    {!v.activo && <span className="ml-2 text-xs text-gray-300 border border-dark-400 px-1.5 py-0.5 rounded font-sans">Baja</span>}
+                  </td>
                   <td className="px-4 py-3 text-gray-200">{tipoLabels[v.tipo_patente] ?? v.tipo_patente}</td>
                   <td className="px-4 py-3 text-gray-200">{v.marca} {v.modelo}</td>
                   <td className="px-4 py-3 text-gray-200">{v.anio ?? '—'}</td>
@@ -259,7 +299,7 @@ export default function VehiculosPage() {
                       ) : (
                         <>
                           <Button size="sm" variant="secondary" onClick={() => openEdit(v)}>Editar</Button>
-                          <Button size="sm" variant="danger" onClick={() => setDeletingId(v.id)}>Dar de baja</Button>
+                          {v.activo && <Button size="sm" variant="danger" onClick={() => setDeletingId(v.id)}>Dar de baja</Button>}
                         </>
                       )}
                     </div>

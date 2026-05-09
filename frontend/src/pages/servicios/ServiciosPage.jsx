@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import logger from '@/lib/logger'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
@@ -197,6 +198,7 @@ export default function ServiciosPage() {
   const [modalOpen, setModalOpen]   = useState(false)
   const [editing, setEditing]       = useState(null)
   const [deletingId, setDeletingId] = useState(null)
+  const [search, setSearch]         = useState('')
 
   useEffect(() => {
     fetchServicios()
@@ -230,13 +232,13 @@ export default function ServiciosPage() {
       const { data, error } = await supabase
         .from('servicios').update(form).eq('id', editing.id)
         .select('*, vehiculos(patente, marca, modelo), clientes(nombre)').single()
-      if (error) { console.error(error); return }
+      if (error) { logger.error(error); return }
       setServicios(prev => prev.map(s => s.id === editing.id ? data : s))
     } else {
       const { data, error } = await supabase
         .from('servicios').insert(form)
         .select('*, vehiculos(patente, marca, modelo), clientes(nombre)').single()
-      if (error) { console.error(error); return }
+      if (error) { logger.error(error); return }
       setServicios(prev => [data, ...prev])
     }
     setModalOpen(false)
@@ -248,20 +250,39 @@ export default function ServiciosPage() {
     setDeletingId(null)
   }
 
+  const filtrados = servicios.filter(s => {
+    if (!search.trim()) return true
+    const q = search.toLowerCase()
+    return (s.clientes?.nombre ?? '').toLowerCase().includes(q) ||
+           (s.vehiculos?.patente ?? '').toLowerCase().includes(q) ||
+           s.tipo.toLowerCase().includes(q)
+  })
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
         <p className="text-gray-200 text-sm">
-          {loading ? '...' : `${servicios.length} servicio${servicios.length !== 1 ? 's' : ''} registrado${servicios.length !== 1 ? 's' : ''}`}
+          {loading ? '...' : `${filtrados.length} servicio${filtrados.length !== 1 ? 's' : ''}`}
         </p>
         <Button onClick={openCreate}>
           <Plus size={15} /> Nuevo servicio
         </Button>
       </div>
 
+      {/* Barra de búsqueda */}
+      <div className="mb-4">
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar por cliente, patente o tipo de servicio..."
+          className="w-full bg-dark-300 border border-dark-400 text-gray-100 text-sm rounded px-3 py-2 outline-none focus:border-red transition-colors placeholder:text-gray-300"
+        />
+      </div>
+
       {loading ? (
         <p className="text-gray-200 text-sm">Cargando...</p>
-      ) : servicios.length === 0 ? (
+      ) : filtrados.length === 0 ? (
         <p className="text-gray-200 text-sm">No hay servicios registrados.</p>
       ) : (
         <div className="bg-dark-200 border border-dark-400 rounded-lg overflow-hidden">
@@ -276,7 +297,7 @@ export default function ServiciosPage() {
               </tr>
             </thead>
             <tbody>
-              {servicios.map(s => (
+              {filtrados.map(s => (
                 <tr key={s.id} className="border-b border-dark-400 last:border-0 hover:bg-dark-300 transition-colors">
                   <td className="px-4 py-3 text-gray-100 font-medium">{s.clientes?.nombre ?? '—'}</td>
                   <td className="px-4 py-3 text-gray-200 font-mono">{s.vehiculos?.patente} <span className="font-sans text-xs">{s.vehiculos?.marca} {s.vehiculos?.modelo}</span></td>
