@@ -288,17 +288,7 @@ export default function ServiciosPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
-                      {deletingId === s.id ? (
-                        <>
-                          <Button size="sm" variant="danger" onClick={() => handleDelete(s.id)}>Confirmar</Button>
-                          <Button size="sm" variant="ghost" onClick={() => setDeletingId(null)}>Cancelar</Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button size="sm" variant="secondary" onClick={() => openEdit(s)}>Editar</Button>
-                          <Button size="sm" variant="danger" onClick={() => setDeletingId(s.id)}>Eliminar</Button>
-                        </>
-                      )}
+                      <Button size="sm" variant="secondary" onClick={() => openEdit(s)}>Editar</Button>
                     </div>
                   </td>
                 </tr>

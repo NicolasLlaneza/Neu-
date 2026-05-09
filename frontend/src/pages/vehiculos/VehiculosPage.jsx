@@ -253,13 +253,13 @@ export default function VehiculosPage() {
                     <div className="flex items-center justify-end gap-2">
                       {deletingId === v.id ? (
                         <>
-                          <Button size="sm" variant="danger" onClick={() => handleDelete(v.id)}>Confirmar</Button>
+                          <Button size="sm" variant="danger" onClick={() => handleDelete(v.id)}>Confirmar baja</Button>
                           <Button size="sm" variant="ghost" onClick={() => setDeletingId(null)}>Cancelar</Button>
                         </>
                       ) : (
                         <>
                           <Button size="sm" variant="secondary" onClick={() => openEdit(v)}>Editar</Button>
-                          <Button size="sm" variant="danger" onClick={() => setDeletingId(v.id)}>Eliminar</Button>
+                          <Button size="sm" variant="danger" onClick={() => setDeletingId(v.id)}>Dar de baja</Button>
                         </>
                       )}
                     </div>

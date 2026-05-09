@@ -199,7 +199,7 @@ export default function ClientesPage() {
                       {deletingId === cliente.id ? (
                         <>
                           <Button size="sm" variant="danger" onClick={() => handleDelete(cliente.id)}>
-                            Confirmar
+                            Confirmar baja
                           </Button>
                           <Button size="sm" variant="ghost" onClick={() => setDeletingId(null)}>
                             Cancelar
@@ -211,7 +211,7 @@ export default function ClientesPage() {
                             Editar
                           </Button>
                           <Button size="sm" variant="danger" onClick={() => setDeletingId(cliente.id)}>
-                            Eliminar
+                            Dar de baja
                           </Button>
                         </>
                       )}

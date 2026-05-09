@@ -232,8 +232,8 @@ export default function NotificacionesPage() {
   }
 
   async function handleDelete(id) {
-    await supabase.from('notificaciones').delete().eq('id', id)
-    setNotificaciones(prev => prev.filter(n => n.id !== id))
+    await supabase.from('notificaciones').update({ estado: 'cancelada' }).eq('id', id)
+    setNotificaciones(prev => prev.map(n => n.id === id ? { ...n, estado: 'cancelada' } : n))
     setDeletingId(null)
   }
 
@@ -307,7 +307,7 @@ export default function NotificacionesPage() {
                       ) : (
                         <>
                           <Button size="sm" variant="secondary" onClick={() => openEdit(n)}>Editar</Button>
-                          <Button size="sm" variant="danger" onClick={() => setDeletingId(n.id)}>Eliminar</Button>
+                          <Button size="sm" variant="danger" onClick={() => setDeletingId(n.id)}>Cancelar notif.</Button>
                         </>
                       )}
                     </div>
