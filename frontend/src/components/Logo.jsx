@@ -1,4 +1,18 @@
-export default function Logo({ className = '' }) {
+export default function Logo({ className = '', compact = false }) {
+  // Compact: una línea, sin subtítulo, ideal para topbar mobile
+  if (compact) {
+    return (
+      <div
+        className={className}
+        style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 900, letterSpacing: '0.05em', lineHeight: 1 }}
+      >
+        <span style={{ color: '#cccccc', fontSize: '1.5rem' }}>NEU</span>
+        <span style={{ color: '#910000', fontSize: '1.5rem' }}>+</span>
+      </div>
+    )
+  }
+
+  // Full: con subtítulo, para login y consulta pública
   return (
     <div className={`flex flex-col items-center gap-2 ${className}`}>
       <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 900, letterSpacing: '0.05em' }}>

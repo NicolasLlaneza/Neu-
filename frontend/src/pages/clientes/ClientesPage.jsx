@@ -162,7 +162,7 @@ export default function ClientesPage() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <p className="text-gray-200 text-sm">
           {loading ? '...' : `${filtrados.length} cliente${filtrados.length !== 1 ? 's' : ''}`}
         </p>
@@ -200,7 +200,7 @@ export default function ClientesPage() {
         <p className="text-gray-200 text-sm">No hay clientes registrados.</p>
       ) : (
         <div className="bg-dark-200 border border-dark-400 rounded-lg overflow-x-auto">
-          <table className="w-full text-sm min-w-[640px]">
+          <table className="w-full text-sm min-w-[640px] whitespace-nowrap">
             <thead>
               <tr className="border-b border-dark-400">
                 {['Nombre', 'Teléfono', 'Email', 'Canal', 'Estado', ''].map(col => (

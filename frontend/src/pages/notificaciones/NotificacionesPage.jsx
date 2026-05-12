@@ -251,7 +251,7 @@ export default function NotificacionesPage() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <p className="text-gray-200 text-sm">
           {loading ? '...' : (
             <>
@@ -288,7 +288,7 @@ export default function NotificacionesPage() {
         <p className="text-gray-200 text-sm">No hay notificaciones registradas.</p>
       ) : (
         <div className="bg-dark-200 border border-dark-400 rounded-lg overflow-x-auto">
-          <table className="w-full text-sm min-w-[600px]">
+          <table className="w-full text-sm min-w-[700px] whitespace-nowrap">
             <thead>
               <tr className="border-b border-dark-400">
                 {['Cliente', 'Motivo', 'Fecha envío', 'Hora', 'Estado', ''].map(col => (
