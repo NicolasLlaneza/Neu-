@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { LogOut } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
+import Logo from '@/components/Logo'
 
 const titles = {
   '/clientes':       'Clientes',
@@ -25,7 +26,9 @@ export default function Topbar() {
   return (
     <header className="fixed top-0 left-0 md:left-56 right-0 h-14 bg-dark-100 border-b border-dark-400 flex items-center justify-between px-4 md:px-6 z-10">
 
-      <h1 className="text-sm font-bold uppercase tracking-widest text-gray-100">
+      {/* Mobile: Logo | Desktop: título de página */}
+      <Logo className="md:hidden w-24" />
+      <h1 className="hidden md:block text-sm font-bold uppercase tracking-widest text-gray-100">
         {title}
       </h1>
 
