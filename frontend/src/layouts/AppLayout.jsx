@@ -1,8 +1,20 @@
 import Sidebar from './Sidebar'
 import Topbar from './Topbar'
 import BottomNav from './BottomNav'
+import InactivityWarning from '@/components/InactivityWarning'
+import { useInactivityTimeout } from '@/hooks/useInactivityTimeout'
+import { supabase } from '@/lib/supabase'
+import { useNavigate } from 'react-router-dom'
 
 export default function AppLayout({ children }) {
+  const navigate = useNavigate()
+  const { showWarning, extendSession } = useInactivityTimeout()
+
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    navigate('/login', { replace: true })
+  }
+
   return (
     <div className="min-h-screen bg-dark">
       <Sidebar />
@@ -11,6 +23,13 @@ export default function AppLayout({ children }) {
         {children}
       </main>
       <BottomNav />
+
+      {showWarning && (
+        <InactivityWarning
+          onExtend={extendSession}
+          onLogout={handleLogout}
+        />
+      )}
     </div>
   )
 }
