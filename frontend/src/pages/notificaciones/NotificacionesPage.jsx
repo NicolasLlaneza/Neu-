@@ -287,8 +287,8 @@ export default function NotificacionesPage() {
       ) : filtradas.length === 0 ? (
         <p className="text-gray-200 text-sm">No hay notificaciones registradas.</p>
       ) : (
-        <div className="bg-dark-200 border border-dark-400 rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-dark-200 border border-dark-400 rounded-lg overflow-x-auto">
+          <table className="w-full text-sm min-w-[600px]">
             <thead>
               <tr className="border-b border-dark-400">
                 {['Cliente', 'Motivo', 'Fecha envío', 'Hora', 'Estado', ''].map(col => (

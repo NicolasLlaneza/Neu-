@@ -19,7 +19,7 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="fixed top-0 left-0 h-screen w-56 bg-dark-100 border-r border-dark-400 flex flex-col z-20">
+    <aside className="hidden md:flex fixed top-0 left-0 h-screen w-56 bg-dark-100 border-r border-dark-400 flex-col z-20">
 
       {/* Logo */}
       <div className="flex justify-center py-7 border-b border-dark-400">

@@ -285,8 +285,8 @@ export default function ServiciosPage() {
       ) : filtrados.length === 0 ? (
         <p className="text-gray-200 text-sm">No hay servicios registrados.</p>
       ) : (
-        <div className="bg-dark-200 border border-dark-400 rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-dark-200 border border-dark-400 rounded-lg overflow-x-auto">
+          <table className="w-full text-sm min-w-[700px]">
             <thead>
               <tr className="border-b border-dark-400">
                 {['Cliente', 'Vehículo', 'Servicio', 'Fecha', 'KM', 'Importe', ''].map(col => (
