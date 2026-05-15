@@ -19,7 +19,7 @@ export default function AppLayout({ children }) {
     <div className="min-h-screen bg-dark">
       <Sidebar />
       <Topbar />
-      <main className="md:ml-56 pt-14 p-4 md:p-6 pb-20 md:pb-6">
+      <main className="md:ml-56 pt-14 p-4 md:px-6 md:pb-6 pb-20">
         {children}
       </main>
       <BottomNav />
