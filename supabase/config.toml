@@ -1,2 +1,7 @@
+# Edge Functions:
+# - send-notification:     envía un mensaje de WhatsApp para una notificación específica
+# - process-notifications: corre cada 5 min (programado vía pg_cron, ver migration 003)
+
+[functions.send-notification]
+
 [functions.process-notifications]
-schedule = "*/5 * * * *"  # Cada 5 minutos
