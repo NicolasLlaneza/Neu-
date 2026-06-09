@@ -185,6 +185,7 @@ export default function NotificacionesPage() {
   const [modalOpen, setModalOpen]           = useState(false)
   const [editing, setEditing]               = useState(null)
   const [deletingId, setDeletingId]         = useState(null)
+  const [sendingId, setSendingId]           = useState(null)
   const [search, setSearch]                 = useState('')
 
   useEffect(() => {
@@ -237,6 +238,31 @@ export default function NotificacionesPage() {
     await supabase.from('notificaciones').update({ estado: 'cancelada' }).eq('id', id)
     setNotificaciones(prev => prev.map(n => n.id === id ? { ...n, estado: 'cancelada' } : n))
     setDeletingId(null)
+  }
+
+  // Envía la notificación de inmediato (ignora fecha/hora programada)
+  async function handleSendNow(id) {
+    setSendingId(id)
+    try {
+      const { data, error } = await supabase.functions.invoke('send-notification', {
+        body: { notificacion_id: id },
+      })
+
+      if (error || data?.error) {
+        logger.error(error ?? data.error)
+        setNotificaciones(prev =>
+          prev.map(n => n.id === id ? { ...n, estado: 'fallida', error_msg: data?.error ?? error.message } : n)
+        )
+      } else {
+        setNotificaciones(prev =>
+          prev.map(n => n.id === id ? { ...n, estado: 'enviada', enviado_at: new Date().toISOString() } : n)
+        )
+      }
+    } catch (err) {
+      logger.error(err)
+    } finally {
+      setSendingId(null)
+    }
   }
 
   const pendientes = notificaciones.filter(n => n.estado === 'pendiente').length
@@ -326,6 +352,15 @@ export default function NotificacionesPage() {
                         </>
                       ) : (
                         <>
+                          {n.estado === 'pendiente' && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleSendNow(n.id)}
+                              loading={sendingId === n.id}
+                            >
+                              Enviar ahora
+                            </Button>
+                          )}
                           <Button size="sm" variant="secondary" onClick={() => openEdit(n)}>Editar</Button>
                           <Button size="sm" variant="danger" onClick={() => setDeletingId(n.id)}>Cancelar notif.</Button>
                         </>

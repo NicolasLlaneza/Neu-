@@ -19,19 +19,34 @@ const INTERNAL_SECRET  = Deno.env.get('INTERNAL_SECRET')!
 const WHATSAPP_API_URL = `https://graph.facebook.com/v19.0/${PHONE_NUMBER_ID}/messages`
 
 serve(async (req: Request) => {
-  // Solo acepta llamadas internas autenticadas con el secret compartido
-  const authHeader = req.headers.get('x-internal-secret')
-  if (authHeader !== INTERNAL_SECRET) {
-    return json({ error: 'No autorizado' }, 401)
-  }
-
-  const { notificacion_id } = await req.json()
-  if (!notificacion_id) return json({ error: 'notificacion_id requerido' }, 400)
-
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   )
+
+  // Dos formas de auth:
+  // 1. INTERNAL_SECRET: llamadas internas (cron → process-notifications → send-notification)
+  // 2. JWT de admin activo: llamadas desde el frontend (botón "Enviar ahora")
+  const internalSecret = req.headers.get('x-internal-secret')
+  const isInternalCall = internalSecret === INTERNAL_SECRET
+
+  if (!isInternalCall) {
+    const authHeader = req.headers.get('Authorization') ?? ''
+    const jwt = authHeader.replace('Bearer ', '')
+    const { data: { user } } = await supabase.auth.getUser(jwt)
+    if (!user) return json({ error: 'No autorizado' }, 401)
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('activo')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile?.activo) return json({ error: 'Solo admins activos' }, 403)
+  }
+
+  const { notificacion_id } = await req.json()
+  if (!notificacion_id) return json({ error: 'notificacion_id requerido' }, 400)
 
   // Buscar la notificación pendiente con datos del cliente
   const { data: notif, error: fetchError } = await supabase
