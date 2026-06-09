@@ -18,7 +18,18 @@ const ACCESS_TOKEN     = Deno.env.get('WHATSAPP_ACCESS_TOKEN')!
 const INTERNAL_SECRET  = Deno.env.get('INTERNAL_SECRET')!
 const WHATSAPP_API_URL = `https://graph.facebook.com/v19.0/${PHONE_NUMBER_ID}/messages`
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin':  '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-internal-secret',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
 serve(async (req: Request) => {
+  // Preflight CORS
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: CORS_HEADERS })
+  }
+
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -123,6 +134,6 @@ serve(async (req: Request) => {
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
   })
 }
