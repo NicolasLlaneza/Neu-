@@ -5,10 +5,11 @@ import { supabase } from '@/lib/supabase'
 import Logo from '@/components/Logo'
 
 const titles = {
-  '/clientes':       'Clientes',
-  '/vehiculos':      'Vehículos',
-  '/servicios':      'Servicios',
-  '/notificaciones': 'Notificaciones',
+  '/clientes':        'Clientes',
+  '/vehiculos':       'Vehículos',
+  '/servicios':       'Servicios',
+  '/notificaciones':  'Notificaciones',
+  '/config/whatsapp': 'WhatsApp',
 }
 
 export default function Topbar() {

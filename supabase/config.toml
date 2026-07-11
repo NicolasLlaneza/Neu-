@@ -1,7 +1,10 @@
 # Edge Functions:
 # - send-notification:     envía un mensaje de WhatsApp para una notificación específica
 # - process-notifications: corre cada 5 min (programado vía pg_cron, ver migration 003)
+# - exchange-fb-code:      intercambia el code del Embedded Signup por access_token
 
 [functions.send-notification]
 
 [functions.process-notifications]
+
+[functions.exchange-fb-code]

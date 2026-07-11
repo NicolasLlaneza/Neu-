@@ -9,6 +9,7 @@ import ClientesPage from '@/pages/clientes/ClientesPage'
 import VehiculosPage from '@/pages/vehiculos/VehiculosPage'
 import ServiciosPage from '@/pages/servicios/ServiciosPage'
 import NotificacionesPage from '@/pages/notificaciones/NotificacionesPage'
+import ConfigWhatsappPage from '@/pages/config/ConfigWhatsappPage'
 
 export default function App() {
   return (
@@ -31,6 +32,9 @@ export default function App() {
           } />
           <Route path="/notificaciones" element={
             <ProtectedRoute><AppLayout><NotificacionesPage /></AppLayout></ProtectedRoute>
+          } />
+          <Route path="/config/whatsapp" element={
+            <ProtectedRoute><AppLayout><ConfigWhatsappPage /></AppLayout></ProtectedRoute>
           } />
 
           {/* Raíz → redirige a clientes */}

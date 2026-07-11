@@ -4,19 +4,22 @@
 //
 // Body esperado: { notificacion_id: string }
 //
-// Variables de entorno requeridas:
-//   WHATSAPP_PHONE_NUMBER_ID  — ID del número de teléfono en Meta
-//   WHATSAPP_ACCESS_TOKEN     — Token de acceso permanente de Meta
-//   INTERNAL_SECRET           — Secret compartido para llamadas internas
+// El phone_number_id se lee de la tabla `configuracion_whatsapp` (poblada
+// por el Embedded Signup del cliente). Si no hay config, cae al env var
+// WHATSAPP_PHONE_NUMBER_ID como fallback para el flujo de desarrollo.
+//
+// Variables de entorno:
+//   WHATSAPP_ACCESS_TOKEN     — Token permanente del System User (requerido)
+//   INTERNAL_SECRET           — Secret compartido para llamadas internas (requerido)
+//   WHATSAPP_PHONE_NUMBER_ID  — Fallback si no hay fila en configuracion_whatsapp
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { serve }        from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const PHONE_NUMBER_ID  = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID')!
 const ACCESS_TOKEN     = Deno.env.get('WHATSAPP_ACCESS_TOKEN')!
 const INTERNAL_SECRET  = Deno.env.get('INTERNAL_SECRET')!
-const WHATSAPP_API_URL = `https://graph.facebook.com/v19.0/${PHONE_NUMBER_ID}/messages`
+const FALLBACK_PHONE_NUMBER_ID = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID')
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin':  '*',
@@ -59,6 +62,22 @@ serve(async (req: Request) => {
   const { notificacion_id } = await req.json()
   if (!notificacion_id) return json({ error: 'notificacion_id requerido' }, 400)
 
+  // Resolver phone_number_id: preferir la config en BD (Embedded Signup),
+  // si no hay, usar el env var como fallback (flujo de desarrollo)
+  const { data: config } = await supabase
+    .from('configuracion_whatsapp')
+    .select('phone_number_id')
+    .maybeSingle()
+
+  const phoneNumberId = config?.phone_number_id ?? FALLBACK_PHONE_NUMBER_ID
+  if (!phoneNumberId) {
+    return json({
+      error: 'WhatsApp no está configurado. Conectá una cuenta en Config → WhatsApp.',
+    }, 500)
+  }
+
+  const whatsappApiUrl = `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`
+
   // Buscar la notificación pendiente con datos del cliente
   const { data: notif, error: fetchError } = await supabase
     .from('notificaciones')
@@ -76,7 +95,7 @@ serve(async (req: Request) => {
   const telefono = notif.clientes.telefono.replace(/\D/g, '')
 
   try {
-    const response = await fetch(WHATSAPP_API_URL, {
+    const response = await fetch(whatsappApiUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${ACCESS_TOKEN}`,
