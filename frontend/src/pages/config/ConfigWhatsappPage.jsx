@@ -72,52 +72,56 @@ export default function ConfigWhatsappPage() {
 
     // Lanza el Embedded Signup — el listener de postMessage recibe los IDs
     // y el callback recibe el "code" que canjeamos por access_token en el backend.
+    // NOTA: el SDK de Facebook NO acepta callbacks async; usamos función normal
+    // y envolvemos el trabajo async en una IIFE.
     window.FB.login(
-      async (response) => {
-        try {
-          if (!response.authResponse) {
-            setError('No se completó la autorización con Facebook')
-            return
+      (response) => {
+        (async () => {
+          try {
+            if (!response.authResponse) {
+              setError('No se completó la autorización con Facebook')
+              return
+            }
+
+            const code = response.authResponse.code
+            const signupData = signupDataRef.current
+
+            if (!signupData?.phone_number_id || !signupData?.waba_id) {
+              setError('El flujo terminó pero no recibimos los IDs de WhatsApp. Reintentá.')
+              return
+            }
+
+            // Canjeamos el code por access_token en el backend (edge function)
+            const { data: exchangeData, error: exchangeError } = await supabase.functions.invoke(
+              'exchange-fb-code',
+              { body: { code } }
+            )
+
+            if (exchangeError || exchangeData?.error) {
+              setError('No se pudo canjear el código: ' + (exchangeData?.error ?? exchangeError.message))
+              return
+            }
+
+            // Guardamos la config en la BD
+            const { error: insertError } = await supabase
+              .from('configuracion_whatsapp')
+              .insert({
+                waba_id:         signupData.waba_id,
+                phone_number_id: signupData.phone_number_id,
+                display_name:    signupData.business_name ?? null,
+                numero_visible:  signupData.phone_number ?? null,
+              })
+
+            if (insertError) {
+              setError('No se pudo guardar la config: ' + insertError.message)
+              return
+            }
+
+            await fetchConfig()
+          } finally {
+            setConnecting(false)
           }
-
-          const code = response.authResponse.code
-          const signupData = signupDataRef.current
-
-          if (!signupData?.phone_number_id || !signupData?.waba_id) {
-            setError('El flujo terminó pero no recibimos los IDs de WhatsApp. Reintentá.')
-            return
-          }
-
-          // Canjeamos el code por access_token en el backend (edge function)
-          const { data: exchangeData, error: exchangeError } = await supabase.functions.invoke(
-            'exchange-fb-code',
-            { body: { code } }
-          )
-
-          if (exchangeError || exchangeData?.error) {
-            setError('No se pudo canjear el código: ' + (exchangeData?.error ?? exchangeError.message))
-            return
-          }
-
-          // Guardamos la config en la BD
-          const { error: insertError } = await supabase
-            .from('configuracion_whatsapp')
-            .insert({
-              waba_id:         signupData.waba_id,
-              phone_number_id: signupData.phone_number_id,
-              display_name:    signupData.business_name ?? null,
-              numero_visible:  signupData.phone_number ?? null,
-            })
-
-          if (insertError) {
-            setError('No se pudo guardar la config: ' + insertError.message)
-            return
-          }
-
-          await fetchConfig()
-        } finally {
-          setConnecting(false)
-        }
+        })()
       },
       {
         config_id:                     FB_CONFIG_ID,
