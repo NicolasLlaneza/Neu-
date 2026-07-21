@@ -23,12 +23,14 @@ serve(async () => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   )
 
-  // Buscar notificaciones pendientes cuya fecha+hora de envío ya llegó
-  // Considera zona horaria Argentina (UTC-3)
+  // Buscar notificaciones pendientes cuya fecha+hora de envío ya llegó,
+  // filtrando solo clientes que aceptaron recibir WhatsApp (Ley 25.326).
+  // Considera zona horaria Argentina (UTC-3).
   const { data: pendientes, error } = await supabase
     .from('notificaciones')
-    .select('id')
+    .select('id, clientes!inner(acepta_whatsapp)')
     .eq('estado', 'pendiente')
+    .eq('clientes.acepta_whatsapp', true)
     .or(
       // Fecha anterior a hoy → enviar sin importar la hora
       `fecha_envio.lt.${today()},` +

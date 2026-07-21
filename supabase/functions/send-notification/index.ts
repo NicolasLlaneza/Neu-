@@ -81,13 +81,25 @@ serve(async (req: Request) => {
   // Buscar la notificación pendiente con datos del cliente
   const { data: notif, error: fetchError } = await supabase
     .from('notificaciones')
-    .select('*, clientes(nombre, telefono)')
+    .select('*, clientes(nombre, telefono, acepta_whatsapp)')
     .eq('id', notificacion_id)
     .eq('estado', 'pendiente')
     .single()
 
   if (fetchError || !notif) {
     return json({ error: 'Notificación no encontrada o ya procesada' }, 404)
+  }
+
+  // Defense-in-depth: no enviar si el cliente no consintió WhatsApp
+  if (notif.clientes && notif.clientes.acepta_whatsapp === false) {
+    await supabase
+      .from('notificaciones')
+      .update({
+        estado:    'cancelada',
+        error_msg: 'Cliente no autorizó recibir notificaciones por WhatsApp',
+      })
+      .eq('id', notificacion_id)
+    return json({ error: 'Cliente no autorizó recibir WhatsApp' }, 403)
   }
 
   // Normalizar teléfono a formato internacional sin +

@@ -22,6 +22,7 @@ function ClienteModal({ cliente, onSave, onClose }) {
     email:           cliente?.email           ?? '',
     canal_preferido: cliente?.canal_preferido ?? 'WhatsApp',
     estado:          cliente?.estado          ?? 'nuevo',
+    acepta_whatsapp: cliente?.acepta_whatsapp ?? true,
   })
   const [errors, setErrors]   = useState({})
   const [saving, setSaving]   = useState(false)
@@ -43,7 +44,11 @@ function ClienteModal({ cliente, onSave, onClose }) {
     const errs = validate()
     if (Object.keys(errs).length) { setErrors(errs); return }
     setSaving(true)
-    await onSave({ ...form, email: form.email.trim() || null })
+    await onSave({
+      ...form,
+      email:           form.email.trim() || null,
+      acepta_whatsapp: !!form.acepta_whatsapp,
+    })
     setSaving(false)
   }
 
@@ -90,6 +95,23 @@ function ClienteModal({ cliente, onSave, onClose }) {
           <option value="proximo">Próximo</option>
           <option value="urgente">Urgente</option>
         </Select>
+
+        {/* Consentimiento WhatsApp (Ley 25.326 + Meta Business Policy) */}
+        <label className="flex items-start gap-3 py-2 cursor-pointer group">
+          <input
+            type="checkbox"
+            checked={form.acepta_whatsapp}
+            onChange={e => set('acepta_whatsapp', e.target.checked)}
+            className="mt-0.5 w-4 h-4 accent-red cursor-pointer"
+          />
+          <div className="text-sm text-gray-200 group-hover:text-gray-100 transition-colors">
+            <p>El cliente autorizó recibir notificaciones por WhatsApp</p>
+            <p className="text-xs text-gray-300 mt-0.5">
+              Si está desmarcado, no se le enviarán recordatorios automáticos.
+            </p>
+          </div>
+        </label>
+
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
           <Button type="submit" loading={saving}>Guardar</Button>

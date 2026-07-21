@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
+import { normalizarPatente, detectarTipoPatente } from '@/lib/patente'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
@@ -11,15 +12,6 @@ const tipoLabels = {
   'auto-viejo': 'Auto',
   'auto-nuevo': 'Auto',
   'moto-nueva': 'Moto',
-}
-
-// ABC123 → auto-viejo | AB123CD → auto-nuevo | A123BC → moto-nueva
-function detectarTipo(patente) {
-  const p = patente.replace(/\s/g, '').toUpperCase()
-  if (/^[A-Z]{2}\d{3}[A-Z]{2}$/.test(p)) return 'auto-nuevo'
-  if (/^[A-Z]{3}\d{3}$/.test(p))         return 'auto-viejo'
-  if (/^[A-Z]\d{3}[A-Z]{2}$/.test(p))   return 'moto-nueva'
-  return ''
 }
 
 // ─── Formulario ────────────────────────────────────────────────────────
@@ -42,8 +34,8 @@ function VehiculoModal({ vehiculo, clientes, onSave, onClose }) {
   }
 
   function handlePatente(value) {
-    const normalizada = value.toUpperCase().replace(/\s/g, '')
-    const tipo = detectarTipo(normalizada)
+    const normalizada = normalizarPatente(value)
+    const tipo        = detectarTipoPatente(normalizada)
     setForm(prev => ({ ...prev, patente: normalizada, tipo_patente: tipo }))
     setErrors(prev => ({ ...prev, patente: null, tipo_patente: null }))
   }
