@@ -16,8 +16,16 @@ const estadoConfig = {
   cancelada: { label: 'Cancelada', color: '#555555' },
 }
 
-const mensajeInicial = (nombre) =>
-  `Hola ${nombre}! 👋 Te contactamos desde *NEU+ Neumáticos*.`
+// Personaliza el saludo inicial según el tipo de cliente.
+// Persona: usa el primer nombre. Empresa: saluda al equipo con la razón social.
+function mensajeInicial(cliente) {
+  if (!cliente) return `Hola! 👋 Te contactamos desde *NEU+ Neumáticos*.`
+  if (cliente.tipo === 'empresa') {
+    return `Hola equipo de ${cliente.nombre}! 👋 Los contactamos desde *NEU+ Neumáticos*.`
+  }
+  const primerNombre = cliente.nombre.split(' ')[0]
+  return `Hola ${primerNombre}! 👋 Te contactamos desde *NEU+ Neumáticos*.`
+}
 
 // ─── Formulario ─────────────────────────────────────────────────────────
 function NotificacionModal({ notificacion, clientes, onSave, onClose }) {
@@ -57,13 +65,12 @@ function NotificacionModal({ notificacion, clientes, onSave, onClose }) {
 
   function handleCliente(cliente_id) {
     const cliente = clientes.find(c => c.id === cliente_id)
-    const nombre  = cliente ? cliente.nombre.split(' ')[0] : ''
     setForm(prev => ({
       ...prev,
       cliente_id,
       servicio_id: '',
       // Solo pre-carga el mensaje si todavía está vacío
-      mensaje: prev.mensaje.trim() ? prev.mensaje : mensajeInicial(nombre),
+      mensaje: prev.mensaje.trim() ? prev.mensaje : mensajeInicial(cliente),
     }))
     setErrors(prev => ({ ...prev, cliente_id: null }))
   }
@@ -206,7 +213,7 @@ export default function NotificacionesPage() {
   async function fetchClientes() {
     const { data } = await supabase
       .from('clientes')
-      .select('id, nombre')
+      .select('id, nombre, tipo')
       .eq('activo', true)
       .order('nombre')
     setClientes(data ?? [])

@@ -17,7 +17,10 @@ const estadoConfig = {
 // ─── Formulario dentro del modal ───────────────────────────────────────
 function ClienteModal({ cliente, onSave, onClose }) {
   const [form, setForm] = useState({
+    tipo:            cliente?.tipo            ?? 'persona',
     nombre:          cliente?.nombre          ?? '',
+    documento:       cliente?.documento       ?? '',
+    contacto_nombre: cliente?.contacto_nombre ?? '',
     telefono:        cliente?.telefono        ?? '',
     email:           cliente?.email           ?? '',
     canal_preferido: cliente?.canal_preferido ?? 'WhatsApp',
@@ -27,6 +30,8 @@ function ClienteModal({ cliente, onSave, onClose }) {
   const [errors, setErrors]   = useState({})
   const [saving, setSaving]   = useState(false)
 
+  const esEmpresa = form.tipo === 'empresa'
+
   function set(key, value) {
     setForm(prev => ({ ...prev, [key]: value }))
     setErrors(prev => ({ ...prev, [key]: null }))
@@ -34,7 +39,7 @@ function ClienteModal({ cliente, onSave, onClose }) {
 
   function validate() {
     const errs = {}
-    if (!form.nombre.trim())   errs.nombre   = 'Requerido'
+    if (!form.nombre.trim())   errs.nombre   = esEmpresa ? 'Razón social requerida' : 'Requerido'
     if (!form.telefono.trim()) errs.telefono = 'Requerido'
     return errs
   }
@@ -46,7 +51,9 @@ function ClienteModal({ cliente, onSave, onClose }) {
     setSaving(true)
     await onSave({
       ...form,
-      email:           form.email.trim() || null,
+      email:           form.email.trim()           || null,
+      documento:       form.documento.trim()       || null,
+      contacto_nombre: esEmpresa ? (form.contacto_nombre.trim() || null) : null,
       acepta_whatsapp: !!form.acepta_whatsapp,
     })
     setSaving(false)
@@ -55,13 +62,57 @@ function ClienteModal({ cliente, onSave, onClose }) {
   return (
     <Modal title={cliente ? 'Editar cliente' : 'Nuevo cliente'} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
+
+        {/* Tipo cliente */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => set('tipo', 'persona')}
+            className={`px-4 py-2.5 rounded border text-sm font-semibold uppercase tracking-wider transition-colors ${
+              form.tipo === 'persona'
+                ? 'border-red text-gray-100 bg-red/10'
+                : 'border-dark-400 text-gray-200 hover:border-gray-200'
+            }`}
+          >
+            Persona
+          </button>
+          <button
+            type="button"
+            onClick={() => set('tipo', 'empresa')}
+            className={`px-4 py-2.5 rounded border text-sm font-semibold uppercase tracking-wider transition-colors ${
+              form.tipo === 'empresa'
+                ? 'border-red text-gray-100 bg-red/10'
+                : 'border-dark-400 text-gray-200 hover:border-gray-200'
+            }`}
+          >
+            Empresa
+          </button>
+        </div>
+
         <Input
-          label="Nombre"
+          label={esEmpresa ? 'Razón social' : 'Nombre y apellido'}
           value={form.nombre}
           onChange={e => set('nombre', e.target.value)}
           error={errors.nombre}
-          placeholder="Juan García"
+          placeholder={esEmpresa ? 'Calper SA' : 'Juan García'}
         />
+
+        <Input
+          label={esEmpresa ? 'CUIT (opcional)' : 'DNI (opcional)'}
+          value={form.documento}
+          onChange={e => set('documento', e.target.value)}
+          placeholder={esEmpresa ? '30-12345678-9' : '20123456'}
+        />
+
+        {esEmpresa && (
+          <Input
+            label="Nombre de contacto (opcional)"
+            value={form.contacto_nombre}
+            onChange={e => set('contacto_nombre', e.target.value)}
+            placeholder="Persona con quien nos comunicamos"
+          />
+        )}
+
         <Input
           label="Teléfono"
           value={form.telefono}
@@ -74,7 +125,7 @@ function ClienteModal({ cliente, onSave, onClose }) {
           type="email"
           value={form.email}
           onChange={e => set('email', e.target.value)}
-          placeholder="juan@email.com"
+          placeholder={esEmpresa ? 'contacto@empresa.com' : 'juan@email.com'}
         />
         <Select
           label="Canal preferido"
@@ -225,7 +276,7 @@ export default function ClientesPage() {
           <table className="w-full text-sm min-w-[640px] whitespace-nowrap">
             <thead>
               <tr className="border-b border-dark-400">
-                {['Nombre', 'Teléfono', 'Email', 'Canal', 'Estado', ''].map(col => (
+                {['Tipo', 'Nombre', 'Teléfono', 'Email', 'Canal', 'Estado', ''].map(col => (
                   <th key={col} className="text-left px-4 py-3 text-xs uppercase tracking-wider text-gray-200">
                     {col}
                   </th>
@@ -235,8 +286,22 @@ export default function ClientesPage() {
             <tbody>
               {filtrados.map(cliente => (
                 <tr key={cliente.id} className={`border-b border-dark-400 last:border-0 hover:bg-dark-300 transition-colors ${!cliente.activo ? 'opacity-50' : ''}`}>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs uppercase tracking-wider px-2 py-0.5 rounded border ${
+                      cliente.tipo === 'empresa'
+                        ? 'text-blue-400 border-blue-400/40 bg-blue-400/10'
+                        : 'text-gray-200 border-dark-400 bg-dark-300'
+                    }`}>
+                      {cliente.tipo === 'empresa' ? 'Empresa' : 'Persona'}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-gray-100 font-medium">
                     {cliente.nombre}
+                    {cliente.tipo === 'empresa' && cliente.contacto_nombre && (
+                      <span className="block text-xs text-gray-300 font-normal mt-0.5">
+                        Contacto: {cliente.contacto_nombre}
+                      </span>
+                    )}
                     {!cliente.activo && <span className="ml-2 text-xs text-gray-300 border border-dark-400 px-1.5 py-0.5 rounded">Baja</span>}
                   </td>
                   <td className="px-4 py-3 text-gray-200">{cliente.telefono}</td>

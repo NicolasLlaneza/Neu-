@@ -32,16 +32,24 @@ export default function ConsultaPublicaPage() {
     setLoading(true)
     setError(null)
 
-    const { data, error } = await supabase
-      .rpc('consulta_publica', { p_patente: patente.trim() })
+    // Llamamos a la Edge Function que verifica el CAPTCHA server-side
+    // antes de exponer los datos del vehículo.
+    const { data, error } = await supabase.functions.invoke('consulta-publica', {
+      body: {
+        patente:         patente.trim(),
+        turnstile_token: captchaToken,
+      },
+    })
 
-    if (error) {
-      setError('Ocurrió un error al consultar. Intentá de nuevo.')
+    // Cada búsqueda "gasta" el token. Reseteamos para la siguiente.
+    turnstileRef.current?.reset()
+    setCaptchaToken(null)
+
+    if (error || data?.error) {
+      const msg = data?.error ?? 'Ocurrió un error al consultar. Intentá de nuevo.'
+      setError(msg)
     } else if (!data) {
       setError(`No encontramos ningún vehículo con la patente ${patente}.`)
-      // Resetear captcha para nueva búsqueda
-      turnstileRef.current?.reset()
-      setCaptchaToken(null)
     } else {
       setResultado(data)
       setStep('confirm')
