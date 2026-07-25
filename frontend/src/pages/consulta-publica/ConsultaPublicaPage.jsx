@@ -22,6 +22,7 @@ export default function ConsultaPublicaPage() {
   const [loading, setLoading]       = useState(false)
   const [error, setError]           = useState(null)
   const [captchaToken, setCaptchaToken] = useState(null)
+  const [preview, setPreview]       = useState(null)  // URL de foto en vista ampliada
   const turnstileRef = useRef(null)
 
   async function handleBuscar(e) {
@@ -215,6 +216,24 @@ export default function ConsultaPublicaPage() {
                       {s.observaciones && (
                         <p className="text-xs text-gray-300 mt-1">{s.observaciones}</p>
                       )}
+                      {Array.isArray(s.fotos) && s.fotos.length > 0 && (
+                        <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-2">
+                          {s.fotos.map((url, j) => (
+                            <button
+                              key={j}
+                              type="button"
+                              onClick={() => setPreview(url)}
+                              className="relative aspect-square bg-dark-300 rounded overflow-hidden border border-dark-400 hover:border-red transition-colors group"
+                            >
+                              <img
+                                src={url}
+                                alt={`Foto ${j + 1}`}
+                                className="w-full h-full object-cover cursor-zoom-in"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -231,6 +250,29 @@ export default function ConsultaPublicaPage() {
         )}
 
       </div>
+
+      {/* Preview de foto en tamaño grande */}
+      {preview && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-zoom-out"
+          onClick={() => setPreview(null)}
+        >
+          <img
+            src={preview}
+            alt=""
+            className="max-w-full max-h-full object-contain"
+            onClick={e => e.stopPropagation()}
+          />
+          <button
+            type="button"
+            onClick={() => setPreview(null)}
+            className="absolute top-4 right-4 p-2 bg-dark-100 hover:bg-dark-200 text-gray-100 rounded transition-colors"
+            aria-label="Cerrar"
+          >
+            <XCircle size={20} />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

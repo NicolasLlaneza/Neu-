@@ -83,6 +83,34 @@ serve(async (req: Request) => {
     return json({ error: 'Error al consultar la patente' }, 500)
   }
 
+  // 3. Reemplazar storage_paths de fotos por URLs firmadas (1h de validez)
+  if (data?.servicios && Array.isArray(data.servicios)) {
+    // Recolectar todos los paths en una sola llamada al bucket para eficiencia
+    const allPaths: string[] = []
+    for (const s of data.servicios) {
+      if (Array.isArray(s.fotos)) allPaths.push(...s.fotos)
+    }
+
+    if (allPaths.length > 0) {
+      const { data: signed } = await supabase.storage
+        .from('fotos-servicio')
+        .createSignedUrls(allPaths, 3600)
+
+      // Mapear path → signed URL
+      const urlMap = new Map<string, string>()
+      signed?.forEach((entry: any, i: number) => {
+        if (entry.signedUrl) urlMap.set(allPaths[i], entry.signedUrl)
+      })
+
+      // Reemplazar paths por URLs en cada servicio
+      for (const s of data.servicios) {
+        if (Array.isArray(s.fotos)) {
+          s.fotos = s.fotos.map((p: string) => urlMap.get(p)).filter(Boolean)
+        }
+      }
+    }
+  }
+
   return json(data)
 })
 

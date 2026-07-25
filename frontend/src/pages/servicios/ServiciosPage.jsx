@@ -9,7 +9,7 @@ import Select from '@/components/Select'
 import Textarea from '@/components/Textarea'
 import Modal from '@/components/Modal'
 import SearchSelect from '@/components/SearchSelect'
-import FotoGallery from '@/components/FotoGallery'
+import FotoGallery, { uploadPendingFotos } from '@/components/FotoGallery'
 
 const TIPOS_SERVICIO = [
   'Cambio de neumáticos',
@@ -37,6 +37,7 @@ function ServicioModal({ servicio, vehiculos, clientes, onSave, onClose }) {
     producto:      servicio?.producto      ?? '',
     importe:       servicio?.importe       ?? '',
     observaciones: servicio?.observaciones ?? '',
+    cobrado:       servicio?.cobrado       ?? false,
   })
   const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)
@@ -55,6 +56,9 @@ function ServicioModal({ servicio, vehiculos, clientes, onSave, onClose }) {
 
   // Duplicado detectado por teléfono al crear cliente nuevo
   const [clienteDuplicado, setClienteDuplicado] = useState(null)
+
+  // Fotos pendientes de subir (solo modo creación)
+  const [pendingFotos, setPendingFotos] = useState([])
 
   const tipoSelect = TIPOS_SERVICIO.includes(form.tipo) ? form.tipo : (servicio ? 'Otro' : form.tipo)
   const esModoNuevo = modoVehiculo === 'nuevo'
@@ -201,8 +205,8 @@ function ServicioModal({ servicio, vehiculos, clientes, onSave, onClose }) {
         vehiculoId = vehiculo.id
       }
 
-      // 3. Crear/actualizar el servicio
-      await onSave({
+      // 3. Crear/actualizar el servicio. onSave retorna el registro creado/actualizado.
+      const servicioGuardado = await onSave({
         vehiculo_id:   vehiculoId,
         cliente_id:    clienteId,
         tipo:          finalTipo,
@@ -211,7 +215,16 @@ function ServicioModal({ servicio, vehiculos, clientes, onSave, onClose }) {
         producto:      form.producto.trim()      || null,
         importe:       form.importe !== ''       ? parseFloat(form.importe) : null,
         observaciones: form.observaciones.trim() || null,
+        cobrado:       !!form.cobrado,
       })
+
+      // 4. Si es creación y hay fotos pendientes, subirlas ahora que tenemos ID
+      if (!editando && pendingFotos.length > 0 && servicioGuardado?.id) {
+        const result = await uploadPendingFotos(servicioGuardado.id, pendingFotos)
+        if (!result.ok) {
+          setErrors(prev => ({ ...prev, submit: `Servicio creado, pero ${result.errors.length} foto(s) fallaron` }))
+        }
+      }
     } catch (err) {
       logger.error(err)
       setErrors(prev => ({ ...prev, submit: err.message ?? 'Error inesperado' }))
@@ -231,15 +244,7 @@ function ServicioModal({ servicio, vehiculos, clientes, onSave, onClose }) {
         {!editando && (
           <div className="flex items-center justify-between">
             <label className="text-gray-200 text-xs uppercase tracking-wider">Vehículo</label>
-            {modoVehiculo === 'existente' ? (
-              <button
-                type="button"
-                onClick={() => setModoVehiculo('nuevo')}
-                className="text-xs text-red hover:text-red-bright transition-colors font-semibold uppercase tracking-wider"
-              >
-                + Nuevo vehículo
-              </button>
-            ) : (
+            {modoVehiculo === 'nuevo' && (
               <button
                 type="button"
                 onClick={() => { setModoVehiculo('existente'); setModoCliente('existente') }}
@@ -268,6 +273,16 @@ function ServicioModal({ servicio, vehiculos, clientes, onSave, onClose }) {
               <p className="text-xs text-gray-200 -mt-2">
                 Cliente: <span className="text-gray-100">{vehiculoSeleccionado.clientes?.nombre}</span>
               </p>
+            )}
+            {!editando && (
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full justify-center"
+                onClick={() => setModoVehiculo('nuevo')}
+              >
+                <Plus size={15} /> Nuevo vehículo
+              </Button>
             )}
           </>
         ) : (
@@ -316,18 +331,10 @@ function ServicioModal({ servicio, vehiculos, clientes, onSave, onClose }) {
             </div>
 
             {/* ─── Cliente (dentro de nuevo vehículo) ─── */}
-            <div className="pt-2 border-t border-dark-400">
-              <div className="flex items-center justify-between mb-2">
+            <div className="pt-2 border-t border-dark-400 space-y-2">
+              <div className="flex items-center justify-between">
                 <label className="text-gray-200 text-xs uppercase tracking-wider">Cliente</label>
-                {modoCliente === 'existente' ? (
-                  <button
-                    type="button"
-                    onClick={() => setModoCliente('nuevo')}
-                    className="text-xs text-red hover:text-red-bright transition-colors font-semibold uppercase tracking-wider"
-                  >
-                    + Nuevo cliente
-                  </button>
-                ) : (
+                {modoCliente === 'nuevo' && (
                   <button
                     type="button"
                     onClick={() => setModoCliente('existente')}
@@ -339,16 +346,26 @@ function ServicioModal({ servicio, vehiculos, clientes, onSave, onClose }) {
               </div>
 
               {modoCliente === 'existente' ? (
-                <SearchSelect
-                  value={form.cliente_id}
-                  onChange={cid => set('cliente_id', cid)}
-                  error={errors.cliente_id}
-                  placeholder="Buscar cliente por nombre..."
-                  options={clientes.map(c => ({
-                    value: c.id,
-                    label: c.tipo === 'empresa' ? `[Empresa] ${c.nombre}` : c.nombre,
-                  }))}
-                />
+                <>
+                  <SearchSelect
+                    value={form.cliente_id}
+                    onChange={cid => set('cliente_id', cid)}
+                    error={errors.cliente_id}
+                    placeholder="Buscar cliente por nombre..."
+                    options={clientes.map(c => ({
+                      value: c.id,
+                      label: c.tipo === 'empresa' ? `[Empresa] ${c.nombre}` : c.nombre,
+                    }))}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full justify-center"
+                    onClick={() => setModoCliente('nuevo')}
+                  >
+                    <Plus size={15} /> Nuevo cliente
+                  </Button>
+                </>
               ) : (
                 <div className="space-y-3">
                   {/* Toggle persona/empresa */}
@@ -503,16 +520,29 @@ function ServicioModal({ servicio, vehiculos, clientes, onSave, onClose }) {
           placeholder="Notas adicionales..."
         />
 
-        {/* Galería de fotos: solo disponible al editar (necesita ID del servicio) */}
-        {editando ? (
-          <div className="pt-2 border-t border-dark-400">
-            <FotoGallery servicioId={servicio.id} />
+        {/* Cobrado */}
+        <label className="flex items-start gap-3 py-2 cursor-pointer group">
+          <input
+            type="checkbox"
+            checked={form.cobrado}
+            onChange={e => set('cobrado', e.target.checked)}
+            className="mt-0.5 w-4 h-4 accent-red cursor-pointer"
+          />
+          <div className="text-sm text-gray-200 group-hover:text-gray-100 transition-colors">
+            <p>Este servicio ya fue cobrado</p>
+            <p className="text-xs text-gray-300 mt-0.5">
+              Se registra la fecha de cobro automáticamente.
+            </p>
           </div>
-        ) : (
-          <p className="text-xs text-gray-300 italic pt-1">
-            Para agregar fotos, guardá primero el servicio y después editalo.
-          </p>
-        )}
+        </label>
+
+        {/* Galería de fotos: modo persistido si editando, modo pendiente si creando */}
+        <div className="pt-2 border-t border-dark-400">
+          <FotoGallery
+            servicioId={editando ? servicio.id : undefined}
+            onPendingChange={setPendingFotos}
+          />
+        </div>
 
         {errors.submit && (
           <p className="text-red-bright text-xs">{errors.submit}</p>
@@ -580,18 +610,21 @@ export default function ServiciosPage() {
       const { data, error } = await supabase
         .from('servicios').update(form).eq('id', editing.id)
         .select('*, vehiculos(patente, marca, modelo), clientes(nombre)').single()
-      if (error) { logger.error(error); return }
+      if (error) { logger.error(error); return null }
       setServicios(prev => prev.map(s => s.id === editing.id ? data : s))
+      setModalOpen(false)
+      return data
     } else {
       const { data, error } = await supabase
         .from('servicios').insert(form)
         .select('*, vehiculos(patente, marca, modelo), clientes(nombre)').single()
-      if (error) { logger.error(error); return }
+      if (error) { logger.error(error); return null }
       setServicios(prev => [data, ...prev])
       // Refrescar vehículos y clientes por si se crearon nuevos
       await Promise.all([fetchVehiculos(), fetchClientes()])
+      setModalOpen(false)
+      return data
     }
-    setModalOpen(false)
   }
 
   async function handleDelete(id) {
@@ -639,7 +672,7 @@ export default function ServiciosPage() {
           <table className="w-full text-sm min-w-[700px] whitespace-nowrap">
             <thead>
               <tr className="border-b border-dark-400">
-                {['Cliente', 'Vehículo', 'Servicio', 'Fecha', 'KM', 'Importe', ''].map(col => (
+                {['Cliente', 'Vehículo', 'Servicio', 'Fecha', 'KM', 'Importe', 'Cobro', ''].map(col => (
                   <th key={col} className="text-left px-4 py-3 text-xs uppercase tracking-wider text-gray-200">
                     {col}
                   </th>
@@ -656,6 +689,17 @@ export default function ServiciosPage() {
                   <td className="px-4 py-3 text-gray-200">{s.km?.toLocaleString('es-AR')} km</td>
                   <td className="px-4 py-3 text-gray-200">
                     {s.importe != null ? `$${Number(s.importe).toLocaleString('es-AR')}` : '—'}
+                  </td>
+                  <td className="px-4 py-3">
+                    {s.cobrado ? (
+                      <span className="text-xs uppercase tracking-wider px-2 py-0.5 rounded border text-green-500 border-green-500/40 bg-green-500/10">
+                        Cobrado
+                      </span>
+                    ) : (
+                      <span className="text-xs uppercase tracking-wider px-2 py-0.5 rounded border text-yellow-500 border-yellow-500/40 bg-yellow-500/10">
+                        Pendiente
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
