@@ -14,6 +14,28 @@ const estadoConfig = {
   urgente: { label: 'Urgente', color: '#910000' },
 }
 
+// Botón de pestaña reutilizable para el filtro por tipo
+function TabButton({ active, onClick, label, count }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-4 py-2.5 text-xs uppercase tracking-wider font-semibold transition-colors border-b-2 -mb-px ${
+        active
+          ? 'border-red text-gray-100'
+          : 'border-transparent text-gray-200 hover:text-gray-100'
+      }`}
+    >
+      {label}
+      <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] ${
+        active ? 'bg-red text-gray-100' : 'bg-dark-300 text-gray-300'
+      }`}>
+        {count}
+      </span>
+    </button>
+  )
+}
+
 // ─── Formulario dentro del modal ───────────────────────────────────────
 function ClienteModal({ cliente, onSave, onClose }) {
   const [form, setForm] = useState({
@@ -181,6 +203,7 @@ export default function ClientesPage() {
   const [deletingId, setDeletingId]   = useState(null)
   const [search, setSearch]           = useState('')
   const [showInactive, setShowInactive] = useState(false)
+  const [tipoFiltro, setTipoFiltro]   = useState('todos')  // 'todos' | 'persona' | 'empresa'
 
   useEffect(() => { fetchClientes() }, [])
 
@@ -222,14 +245,23 @@ export default function ClientesPage() {
   }
 
   const inactivos = clientes.filter(c => !c.activo).length
-  const filtrados = clientes
-    .filter(c => showInactive ? true : c.activo)
+
+  // Contadores por tipo (respetando el filtro de inactivos actual)
+  const clientesVisibles = clientes.filter(c => showInactive ? true : c.activo)
+  const conteoTodos    = clientesVisibles.length
+  const conteoPersonas = clientesVisibles.filter(c => c.tipo === 'persona').length
+  const conteoEmpresas = clientesVisibles.filter(c => c.tipo === 'empresa').length
+
+  const filtrados = clientesVisibles
+    .filter(c => tipoFiltro === 'todos' ? true : c.tipo === tipoFiltro)
     .filter(c => {
       if (!search.trim()) return true
       const q = search.toLowerCase()
       return c.nombre.toLowerCase().includes(q) ||
              c.telefono.toLowerCase().includes(q) ||
-             (c.email ?? '').toLowerCase().includes(q)
+             (c.email ?? '').toLowerCase().includes(q) ||
+             (c.contacto_nombre ?? '').toLowerCase().includes(q) ||
+             (c.documento ?? '').toLowerCase().includes(q)
     })
 
   return (
@@ -244,12 +276,40 @@ export default function ClientesPage() {
         </Button>
       </div>
 
+      {/* Tabs por tipo */}
+      <div className="flex items-center gap-1 mb-4 border-b border-dark-400">
+        <TabButton
+          active={tipoFiltro === 'todos'}
+          onClick={() => setTipoFiltro('todos')}
+          label="Todos"
+          count={conteoTodos}
+        />
+        <TabButton
+          active={tipoFiltro === 'persona'}
+          onClick={() => setTipoFiltro('persona')}
+          label="Personas"
+          count={conteoPersonas}
+        />
+        <TabButton
+          active={tipoFiltro === 'empresa'}
+          onClick={() => setTipoFiltro('empresa')}
+          label="Empresas"
+          count={conteoEmpresas}
+        />
+      </div>
+
       {/* Barra de búsqueda y filtros */}
       <div className="flex items-center gap-3 mb-4">
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Buscar por nombre, teléfono o email..."
+          placeholder={
+            tipoFiltro === 'empresa'
+              ? 'Buscar por razón social, contacto, CUIT, teléfono o email...'
+              : tipoFiltro === 'persona'
+                ? 'Buscar por nombre, DNI, teléfono o email...'
+                : 'Buscar por nombre, teléfono o email...'
+          }
           className="flex-1 bg-dark-300 border border-dark-400 text-gray-100 text-sm rounded px-3 py-2 outline-none focus:border-red transition-colors placeholder:text-gray-300"
         />
         {inactivos > 0 && (
