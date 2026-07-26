@@ -100,6 +100,13 @@ export default function LoginPage() {
           </button>
         </form>
 
+        {/* Footer legal */}
+        <div className="flex items-center justify-center gap-4 mt-6 text-xs text-gray-300">
+          <a href="/privacidad" className="hover:text-gray-100 transition-colors">Privacidad</a>
+          <span>·</span>
+          <a href="/terminos" className="hover:text-gray-100 transition-colors">Términos</a>
+        </div>
+
       </div>
     </div>
   )

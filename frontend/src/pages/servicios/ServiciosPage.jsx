@@ -26,7 +26,7 @@ function hoy() {
 }
 
 // ─── Formulario ────────────────────────────────────────────────────────
-function ServicioModal({ servicio, vehiculos, clientes, onSave, onClose }) {
+function ServicioModal({ servicio, vehiculos, clientes, onSave, onServicioCreated, onClose }) {
   const [form, setForm] = useState({
     vehiculo_id:   servicio?.vehiculo_id   ?? '',
     cliente_id:    servicio?.cliente_id    ?? '',
@@ -166,49 +166,8 @@ function ServicioModal({ servicio, vehiculos, clientes, onSave, onClose }) {
     setSaving(true)
 
     try {
-      let clienteId  = form.cliente_id
-      let vehiculoId = form.vehiculo_id
-
-      // 1. Crear cliente nuevo si corresponde
-      if (esModoNuevo && modoCliente === 'nuevo') {
-        const clientePayload = {
-          tipo:            nuevoCliente.tipo,
-          nombre:          nuevoCliente.nombre.trim(),
-          telefono:        nuevoCliente.telefono.trim(),
-          email:           nuevoCliente.email.trim() || null,
-          documento:       nuevoCliente.documento.trim() || null,
-          contacto_nombre: esEmpresa ? (nuevoCliente.contacto_nombre.trim() || null) : null,
-          acepta_whatsapp: !!nuevoCliente.acepta_whatsapp,
-          canal_preferido: 'WhatsApp',
-          estado:          'nuevo',
-        }
-        const { data: cliente, error } = await supabase
-          .from('clientes').insert(clientePayload).select('id').single()
-        if (error) throw new Error('No se pudo crear el cliente: ' + error.message)
-        clienteId = cliente.id
-      }
-
-      // 2. Crear vehículo nuevo si corresponde
-      if (esModoNuevo) {
-        const vehiculoPayload = {
-          cliente_id:   clienteId,
-          patente:      nuevoVehiculo.patente,
-          tipo_patente: nuevoVehiculo.tipo_patente,
-          marca:        nuevoVehiculo.marca.trim(),
-          modelo:       nuevoVehiculo.modelo.trim(),
-          anio:         nuevoVehiculo.anio ? parseInt(nuevoVehiculo.anio) : null,
-          km:           parseInt(form.km) || 0,
-        }
-        const { data: vehiculo, error } = await supabase
-          .from('vehiculos').insert(vehiculoPayload).select('id').single()
-        if (error) throw new Error('No se pudo crear el vehículo: ' + error.message)
-        vehiculoId = vehiculo.id
-      }
-
-      // 3. Crear/actualizar el servicio. onSave retorna el registro creado/actualizado.
-      const servicioGuardado = await onSave({
-        vehiculo_id:   vehiculoId,
-        cliente_id:    clienteId,
+      // Payload común del servicio
+      const servicioPayload = {
         tipo:          finalTipo,
         fecha:         form.fecha,
         km:            parseInt(form.km),
@@ -216,9 +175,57 @@ function ServicioModal({ servicio, vehiculos, clientes, onSave, onClose }) {
         importe:       form.importe !== ''       ? parseFloat(form.importe) : null,
         observaciones: form.observaciones.trim() || null,
         cobrado:       !!form.cobrado,
-      })
+      }
 
-      // 4. Si es creación y hay fotos pendientes, subirlas ahora que tenemos ID
+      let servicioGuardado
+
+      if (editando) {
+        // Edición: siempre vehículo existente, sin crear cliente/vehículo nuevos
+        servicioGuardado = await onSave(servicioPayload)
+      } else if (esModoNuevo) {
+        // Creación con posiblemente cliente y/o vehículo nuevos.
+        // Se ejecuta en UNA transacción SQL: si algún paso falla, rollback.
+        const clientePayload = modoCliente === 'nuevo' ? {
+          tipo:            nuevoCliente.tipo,
+          nombre:          nuevoCliente.nombre.trim(),
+          telefono:        nuevoCliente.telefono.trim(),
+          email:           nuevoCliente.email.trim() || null,
+          documento:       nuevoCliente.documento.trim() || null,
+          contacto_nombre: esEmpresa ? (nuevoCliente.contacto_nombre.trim() || null) : null,
+          acepta_whatsapp: !!nuevoCliente.acepta_whatsapp,
+        } : null
+
+        const vehiculoPayload = {
+          patente:      nuevoVehiculo.patente,
+          tipo_patente: nuevoVehiculo.tipo_patente,
+          marca:        nuevoVehiculo.marca.trim(),
+          modelo:       nuevoVehiculo.modelo.trim(),
+          anio:         nuevoVehiculo.anio || null,
+          km:           form.km || 0,
+        }
+
+        const { data, error } = await supabase.rpc('crear_servicio_completo', {
+          p_servicio:       servicioPayload,
+          p_cliente_id:     modoCliente === 'existente' ? form.cliente_id : null,
+          p_vehiculo_id:    null,
+          p_cliente_nuevo:  clientePayload,
+          p_vehiculo_nuevo: vehiculoPayload,
+        })
+        if (error) throw new Error(error.message)
+
+        // Refrescar tabla + guardar los IDs devueltos
+        servicioGuardado = { id: data.servicio_id }
+        await onServicioCreated(data)
+      } else {
+        // Creación con vehículo existente (flujo simple)
+        servicioGuardado = await onSave({
+          ...servicioPayload,
+          vehiculo_id: form.vehiculo_id,
+          cliente_id:  form.cliente_id,
+        })
+      }
+
+      // Fotos pendientes: subirlas ahora que tenemos ID
       if (!editando && pendingFotos.length > 0 && servicioGuardado?.id) {
         const result = await uploadPendingFotos(servicioGuardado.id, pendingFotos)
         if (!result.ok) {
@@ -606,6 +613,8 @@ export default function ServiciosPage() {
   function openEdit(s)  { setEditing(s);    setModalOpen(true) }
 
   async function handleSave(form) {
+    // Se usa para: edición de servicio existente, o creación con vehículo existente
+    // (los flujos con cliente/vehículo nuevo pasan por handleServicioCreated).
     if (editing) {
       const { data, error } = await supabase
         .from('servicios').update(form).eq('id', editing.id)
@@ -620,11 +629,17 @@ export default function ServiciosPage() {
         .select('*, vehiculos(patente, marca, modelo), clientes(nombre)').single()
       if (error) { logger.error(error); return null }
       setServicios(prev => [data, ...prev])
-      // Refrescar vehículos y clientes por si se crearon nuevos
-      await Promise.all([fetchVehiculos(), fetchClientes()])
       setModalOpen(false)
       return data
     }
+  }
+
+  // Post-callback cuando la RPC crear_servicio_completo terminó exitosamente.
+  // Recibe { servicio_id, cliente_id, vehiculo_id }. Refresca listados
+  // y cierra el modal.
+  async function handleServicioCreated(ids) {
+    await Promise.all([fetchServicios(), fetchVehiculos(), fetchClientes()])
+    setModalOpen(false)
   }
 
   async function handleDelete(id) {
@@ -719,6 +734,7 @@ export default function ServiciosPage() {
           vehiculos={vehiculos}
           clientes={clientes}
           onSave={handleSave}
+          onServicioCreated={handleServicioCreated}
           onClose={() => setModalOpen(false)}
         />
       )}

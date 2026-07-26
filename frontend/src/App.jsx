@@ -10,6 +10,8 @@ import VehiculosPage from '@/pages/vehiculos/VehiculosPage'
 import ServiciosPage from '@/pages/servicios/ServiciosPage'
 import NotificacionesPage from '@/pages/notificaciones/NotificacionesPage'
 import ConfigWhatsappPage from '@/pages/config/ConfigWhatsappPage'
+import PrivacidadPage from '@/pages/legal/PrivacidadPage'
+import TerminosPage from '@/pages/legal/TerminosPage'
 
 export default function App() {
   return (
@@ -19,6 +21,8 @@ export default function App() {
           {/* Rutas públicas */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/consulta" element={<ConsultaPublicaPage />} />
+          <Route path="/privacidad" element={<PrivacidadPage />} />
+          <Route path="/terminos" element={<TerminosPage />} />
 
           {/* Rutas protegidas con layout */}
           <Route path="/clientes" element={

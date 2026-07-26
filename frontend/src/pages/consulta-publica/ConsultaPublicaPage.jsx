@@ -249,6 +249,13 @@ export default function ConsultaPublicaPage() {
           </div>
         )}
 
+        {/* Footer legal */}
+        <div className="flex items-center justify-center gap-4 mt-8 text-xs text-gray-300">
+          <a href="/privacidad" className="hover:text-gray-100 transition-colors">Privacidad</a>
+          <span>·</span>
+          <a href="/terminos" className="hover:text-gray-100 transition-colors">Términos</a>
+        </div>
+
       </div>
 
       {/* Preview de foto en tamaño grande */}

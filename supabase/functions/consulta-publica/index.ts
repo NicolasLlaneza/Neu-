@@ -19,6 +19,11 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const TURNSTILE_SECRET  = Deno.env.get('TURNSTILE_SECRET_KEY')!
 const SITEVERIFY_URL    = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
 
+// Rate limit: máximo de consultas por IP en la última hora.
+// Complementa al CAPTCHA para evitar enumeración manual.
+const RATE_LIMIT_MAX     = 30
+const RATE_LIMIT_WINDOW  = '1 hour'
+
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin':  '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -39,16 +44,37 @@ serve(async (req: Request) => {
     return json({ error: 'turnstile_token requerido' }, 400)
   }
 
-  // 1. Verificar el token con Cloudflare
+  // IP del cliente (Cloudflare Workers la pasa en cf-connecting-ip)
   const clientIp = req.headers.get('cf-connecting-ip')
                 ?? req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-                ?? undefined
+                ?? 'unknown'
 
+  // Cliente Supabase con service role (bypasea RLS para escribir logs)
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  )
+
+  // 0. Rate limit por IP (antes del CAPTCHA para no gastar recursos)
+  const sinceIso = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+  const { count: recentCount } = await supabase
+    .from('consulta_publica_log')
+    .select('id', { count: 'exact', head: true })
+    .eq('ip', clientIp)
+    .gte('consultado_at', sinceIso)
+
+  if ((recentCount ?? 0) >= RATE_LIMIT_MAX) {
+    return json({
+      error: `Demasiadas consultas. Intentá de nuevo en una hora.`,
+    }, 429)
+  }
+
+  // 1. Verificar el token con Cloudflare
   const params = new URLSearchParams({
     secret:   TURNSTILE_SECRET,
     response: turnstile_token,
   })
-  if (clientIp) params.set('remoteip', clientIp)
+  if (clientIp && clientIp !== 'unknown') params.set('remoteip', clientIp)
 
   let verification
   try {
@@ -71,11 +97,12 @@ serve(async (req: Request) => {
     }, 403)
   }
 
-  // 2. Token válido → llamar a la RPC existente
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  )
+  // 2. Token válido → registrar la consulta y llamar a la RPC
+  // (fire-and-forget: si falla el insert, no bloqueamos la respuesta)
+  supabase.from('consulta_publica_log').insert({
+    ip:      clientIp,
+    patente: patente,
+  }).then(() => {}, () => {})
 
   const { data, error } = await supabase.rpc('consulta_publica', { p_patente: patente })
 
