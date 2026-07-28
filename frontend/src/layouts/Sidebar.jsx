@@ -1,21 +1,26 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Users, Car, Wrench, Bell, LogOut, Settings } from 'lucide-react'
+import { Users, Car, Wrench, Bell, LogOut, Settings, UserCog, LayoutDashboard } from 'lucide-react'
 import Logo from '@/components/Logo'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/contexts/AuthContext'
 
 const navItems = [
-  { to: '/clientes',       icon: Users,   label: 'Clientes'       },
-  { to: '/vehiculos',      icon: Car,     label: 'Vehículos'      },
-  { to: '/servicios',      icon: Wrench,  label: 'Servicios'      },
-  { to: '/notificaciones', icon: Bell,    label: 'Notificaciones' },
+  { to: '/inicio',         icon: LayoutDashboard, label: 'Inicio'         },
+  { to: '/clientes',       icon: Users,           label: 'Clientes'       },
+  { to: '/vehiculos',      icon: Car,             label: 'Vehículos'      },
+  { to: '/servicios',      icon: Wrench,          label: 'Servicios'      },
+  { to: '/notificaciones', icon: Bell,            label: 'Notificaciones' },
 ]
 
 const settingsItems = [
   { to: '/config/whatsapp', icon: Settings, label: 'WhatsApp' },
+  { to: '/config/usuarios', icon: UserCog,  label: 'Usuarios', soloSuperadmin: true },
 ]
 
 export default function Sidebar() {
   const navigate = useNavigate()
+  const { profile } = useAuth()
+  const esSuperadmin = profile?.rol === 'superadmin'
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -54,7 +59,9 @@ export default function Sidebar() {
           <p className="px-5 mb-2 text-xs uppercase tracking-widest text-gray-300 font-semibold">
             Configuración
           </p>
-          {settingsItems.map(({ to, icon: Icon, label }) => (
+          {settingsItems
+            .filter(item => !item.soloSuperadmin || esSuperadmin)
+            .map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}

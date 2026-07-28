@@ -10,6 +10,8 @@ import VehiculosPage from '@/pages/vehiculos/VehiculosPage'
 import ServiciosPage from '@/pages/servicios/ServiciosPage'
 import NotificacionesPage from '@/pages/notificaciones/NotificacionesPage'
 import ConfigWhatsappPage from '@/pages/config/ConfigWhatsappPage'
+import UsuariosPage from '@/pages/config/UsuariosPage'
+import InicioPage from '@/pages/inicio/InicioPage'
 import PrivacidadPage from '@/pages/legal/PrivacidadPage'
 import TerminosPage from '@/pages/legal/TerminosPage'
 
@@ -25,6 +27,9 @@ export default function App() {
           <Route path="/terminos" element={<TerminosPage />} />
 
           {/* Rutas protegidas con layout */}
+          <Route path="/inicio" element={
+            <ProtectedRoute><AppLayout><InicioPage /></AppLayout></ProtectedRoute>
+          } />
           <Route path="/clientes" element={
             <ProtectedRoute><AppLayout><ClientesPage /></AppLayout></ProtectedRoute>
           } />
@@ -40,9 +45,12 @@ export default function App() {
           <Route path="/config/whatsapp" element={
             <ProtectedRoute><AppLayout><ConfigWhatsappPage /></AppLayout></ProtectedRoute>
           } />
+          <Route path="/config/usuarios" element={
+            <ProtectedRoute><AppLayout><UsuariosPage /></AppLayout></ProtectedRoute>
+          } />
 
-          {/* Raíz → redirige a clientes */}
-          <Route path="/" element={<Navigate to="/clientes" replace />} />
+          {/* Raíz → redirige al panel */}
+          <Route path="/" element={<Navigate to="/inicio" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

@@ -3,6 +3,7 @@
 # - process-notifications: corre cada 5 min (programado vía pg_cron, ver migration 003)
 # - exchange-fb-code:      intercambia el code del Embedded Signup por access_token
 # - consulta-publica:      wrapper con verificación server-side de Turnstile CAPTCHA
+# - admin-create-user:     alta de usuarios (auth + perfil), solo superadmin
 
 [functions.send-notification]
 
@@ -12,3 +13,5 @@
 
 [functions.consulta-publica]
 verify_jwt = false
+
+[functions.admin-create-user]
