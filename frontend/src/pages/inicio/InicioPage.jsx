@@ -7,7 +7,10 @@ import {
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import logger from '@/lib/logger'
-import { formatFechaAR, formatFechaHoraAR } from '@/lib/fecha'
+import { formatFechaAR, formatFechaHoraAR, estaDentroDeLasProximas } from '@/lib/fecha'
+import EnviarWhatsAppModal from '@/components/EnviarWhatsAppModal'
+import Button from '@/components/Button'
+import { MessageCircle, CalendarClock } from 'lucide-react'
 
 const MESES_INACTIVIDAD = 6   // umbral para considerar a un cliente "dormido"
 
@@ -22,16 +25,44 @@ function hace(meses) {
   return d.toISOString().split('T')[0]
 }
 
+// Fecha de mañana en YYYY-MM-DD (hora Argentina). Se usa como corte
+// superior para "notificaciones de las próximas 24hs": traemos las de
+// hoy o mañana y filtramos con precisión en el cliente por fecha+hora.
+function mananaFecha() {
+  const d = new Date()
+  d.setHours(d.getHours() - 3)
+  d.setDate(d.getDate() + 1)
+  return d.toISOString().split('T')[0]
+}
+
 const money = (n) => `$${Number(n ?? 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}`
 
 export default function InicioPage() {
   const { profile } = useAuth()
   const [data, setData]       = useState(null)
   const [loading, setLoading] = useState(true)
+  const [sendingNotif, setSendingNotif] = useState(null)
 
   const esSuperadmin = profile?.rol === 'superadmin'
 
   useEffect(() => { fetchDatos() }, [esSuperadmin])
+
+  // Refresh cuando la pestaña vuelve a estar visible.
+  // Cubre el caso: usuario marca un servicio como cobrado en /servicios,
+  // vuelve a /inicio y esperaría ver el KPI actualizado. Si el navegador
+  // mantiene el componente vivo (o si volvió desde otra pestaña) los datos
+  // quedarían viejos.
+  useEffect(() => {
+    function refetchSiVisible() {
+      if (document.visibilityState === 'visible') fetchDatos()
+    }
+    document.addEventListener('visibilitychange', refetchSiVisible)
+    window.addEventListener('focus', refetchSiVisible)
+    return () => {
+      document.removeEventListener('visibilitychange', refetchSiVisible)
+      window.removeEventListener('focus', refetchSiVisible)
+    }
+  }, [])
 
   async function fetchDatos() {
     setLoading(true)
@@ -45,6 +76,7 @@ export default function InicioPage() {
         clientesMes,
         notifsFallidas,
         notifsPendientes,
+        notifsProximas,
         tiposServicio,
         actividad,
       ] = await Promise.all([
@@ -74,11 +106,22 @@ export default function InicioPage() {
           .select('id', { count: 'exact', head: true })
           .eq('estado', 'fallida'),
 
-        // Notificaciones pendientes
+        // Notificaciones pendientes (total, para el KPI)
         supabase
           .from('notificaciones')
           .select('id', { count: 'exact', head: true })
           .eq('estado', 'pendiente'),
+
+        // Notificaciones pendientes con envío en las próximas 24hs.
+        // Se traen los datos del cliente porque el widget muestra un botón
+        // "Enviar por WhatsApp" que abre el modal — necesita teléfono y mensaje.
+        supabase
+          .from('notificaciones')
+          .select('id, mensaje, motivo, fecha_envio, hora_envio, cliente_id, clientes(nombre, telefono)')
+          .eq('estado', 'pendiente')
+          .lte('fecha_envio', mananaFecha())
+          .order('fecha_envio')
+          .order('hora_envio'),
 
         // Todos los servicios para el ranking por tipo (últimos 6 meses)
         supabase
@@ -124,6 +167,13 @@ export default function InicioPage() {
       const facturadoMes = serviciosDelMes.reduce((acc, s) => acc + Number(s.importe ?? 0), 0)
       const conImporte   = serviciosDelMes.filter(s => s.importe != null)
 
+      // Filtrar en cliente por fecha+hora exacta dentro de las próximas 24h.
+      // La query trajo hasta mañana, pero puede incluir notificaciones de
+      // mañana con hora posterior a "ahora + 24hs" — las descartamos.
+      const proximas = (notifsProximas.data ?? []).filter(n =>
+        estaDentroDeLasProximas(n.fecha_envio, n.hora_envio, 24)
+      )
+
       setData({
         sinCobrar:       sinCobrar.data ?? [],
         totalSinCobrar:  (sinCobrar.data ?? []).reduce((acc, s) => acc + Number(s.importe ?? 0), 0),
@@ -134,6 +184,7 @@ export default function InicioPage() {
         clientesNuevos:  clientesMes.count ?? 0,
         notifsFallidas:  notifsFallidas.count ?? 0,
         notifsPendientes: notifsPendientes.count ?? 0,
+        proximas,
         ranking,
         maxRanking:      ranking[0]?.[1] ?? 1,
         actividad:       actividad.data ?? [],
@@ -152,6 +203,42 @@ export default function InicioPage() {
 
   return (
     <div className="space-y-6">
+
+      {/* ── PRÓXIMAS 24 HS ── */}
+      {data.proximas && data.proximas.length > 0 && (
+        <section className="bg-dark-200 border-2 border-red rounded-lg p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <CalendarClock size={18} className="text-red" />
+            <h2 className="text-gray-100 text-sm font-bold uppercase tracking-widest">
+              Para enviar en las próximas 24 horas
+            </h2>
+            <span className="ml-auto text-xs bg-red text-gray-100 px-2 py-0.5 rounded font-semibold tabular-nums">
+              {data.proximas.length}
+            </span>
+          </div>
+          <p className="text-gray-300 text-xs">
+            Estos recordatorios están agendados para hoy o mañana. Tocá "Enviar" para abrir WhatsApp Web con el mensaje pre-cargado.
+          </p>
+          <div className="divide-y divide-dark-400 -mx-4">
+            {data.proximas.map(n => (
+              <div key={n.id} className="px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-gray-100 text-sm font-medium truncate">
+                    {n.clientes?.nombre ?? '—'}
+                    <span className="ml-2 text-xs text-gray-300 font-normal">
+                      {formatFechaAR(n.fecha_envio)} · {n.hora_envio?.slice(0, 5)}
+                    </span>
+                  </p>
+                  <p className="text-gray-300 text-xs truncate">{n.motivo}</p>
+                </div>
+                <Button size="sm" onClick={() => setSendingNotif(n)} className="shrink-0">
+                  <MessageCircle size={13} /> Enviar
+                </Button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── ALERTAS ── */}
       {hayAlertas && (
@@ -319,6 +406,14 @@ export default function InicioPage() {
             ))}
           </div>
         </section>
+      )}
+
+      {sendingNotif && (
+        <EnviarWhatsAppModal
+          notificacion={sendingNotif}
+          onEnviada={fetchDatos}
+          onClose={() => setSendingNotif(null)}
+        />
       )}
 
     </div>

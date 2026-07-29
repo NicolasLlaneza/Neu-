@@ -17,7 +17,9 @@ const ClientesPage          = lazy(() => import('@/pages/clientes/ClientesPage')
 const VehiculosPage         = lazy(() => import('@/pages/vehiculos/VehiculosPage'))
 const ServiciosPage         = lazy(() => import('@/pages/servicios/ServiciosPage'))
 const NotificacionesPage    = lazy(() => import('@/pages/notificaciones/NotificacionesPage'))
-const ConfigWhatsappPage    = lazy(() => import('@/pages/config/ConfigWhatsappPage'))
+// ConfigWhatsappPage se deja importable pero sin ruta activa:
+// requiere Embedded Signup aprobado y hoy Meta lo bloquea.
+// const ConfigWhatsappPage = lazy(() => import('@/pages/config/ConfigWhatsappPage'))
 const UsuariosPage          = lazy(() => import('@/pages/config/UsuariosPage'))
 const InicioPage            = lazy(() => import('@/pages/inicio/InicioPage'))
 const PrivacidadPage        = lazy(() => import('@/pages/legal/PrivacidadPage'))
@@ -61,15 +63,14 @@ export default function App() {
             <Route path="/notificaciones" element={
               <ProtectedRoute><AppLayout><NotificacionesPage /></AppLayout></ProtectedRoute>
             } />
-            <Route path="/config/whatsapp" element={
-              <ProtectedRoute><AppLayout><ConfigWhatsappPage /></AppLayout></ProtectedRoute>
-            } />
             <Route path="/config/usuarios" element={
               <ProtectedRoute><AppLayout><UsuariosPage /></AppLayout></ProtectedRoute>
             } />
 
             {/* Raíz → redirige al panel */}
             <Route path="/" element={<Navigate to="/inicio" replace />} />
+            {/* Catch-all: cualquier URL no reconocida vuelve a la raíz */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </AuthProvider>

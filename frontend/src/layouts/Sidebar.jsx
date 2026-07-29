@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Users, Car, Wrench, Bell, LogOut, Settings, UserCog, LayoutDashboard } from 'lucide-react'
+import { Users, Car, Wrench, Bell, LogOut, UserCog, LayoutDashboard } from 'lucide-react'
 import Logo from '@/components/Logo'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
@@ -13,7 +13,8 @@ const navItems = [
 ]
 
 const settingsItems = [
-  { to: '/config/whatsapp', icon: Settings, label: 'WhatsApp' },
+  // '/config/whatsapp' oculto: sin Embedded Signup aprobado no cumple función.
+  // El archivo se mantiene para cuando Meta habilite la verificación.
   { to: '/config/usuarios', icon: UserCog,  label: 'Usuarios', soloSuperadmin: true },
 ]
 

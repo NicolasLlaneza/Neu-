@@ -23,6 +23,44 @@ export function fechaHoyAR() {
 }
 
 /**
+ * Hora actual en formato 'HH:MM' hora Argentina.
+ * Útil para comparar con notificaciones.hora_envio (que se guarda en horario local).
+ */
+export function horaActualAR() {
+  const now = new Date()
+  now.setHours(now.getHours() - 3)
+  return now.toISOString().slice(11, 16)
+}
+
+/**
+ * True si una notificación con fecha_envio (date) + hora_envio (HH:MM:SS)
+ * cae dentro de las próximas N horas desde ahora en hora Argentina.
+ * Incluye notificaciones ya vencidas si aún están pendientes.
+ */
+export function estaDentroDeLasProximas(fechaISO, horaHHMMSS, horas = 24) {
+  if (!fechaISO || !horaHHMMSS) return false
+  // Interpretamos fecha+hora como hora local Argentina.
+  const objetivo = new Date(`${fechaISO}T${horaHHMMSS.slice(0, 5)}:00-03:00`)
+  if (isNaN(objetivo.getTime())) return false
+  const ahora = new Date()
+  const diffMs = objetivo.getTime() - ahora.getTime()
+  // Cae dentro de la ventana si ya pasó (diffMs <= 0) o si falta menos que N horas
+  return diffMs <= horas * 60 * 60 * 1000
+}
+
+/**
+ * True si la notificación ya venció (hora programada <= ahora) o
+ * está a punto de vencer (dentro de los próximos minutosAntes).
+ */
+export function estaProntoAVencer(fechaISO, horaHHMMSS, minutosAntes = 10) {
+  if (!fechaISO || !horaHHMMSS) return false
+  const objetivo = new Date(`${fechaISO}T${horaHHMMSS.slice(0, 5)}:00-03:00`)
+  if (isNaN(objetivo.getTime())) return false
+  const diffMs = objetivo.getTime() - Date.now()
+  return diffMs <= minutosAntes * 60 * 1000
+}
+
+/**
  * Formatea un timestamp ISO a 'DD/MM/YYYY HH:MM' (hora Argentina).
  * Ej: '2026-07-13T18:30:00Z' → '13/07/2026 15:30'
  */

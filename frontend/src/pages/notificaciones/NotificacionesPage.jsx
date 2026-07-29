@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, MessageCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
 import Button from '@/components/Button'
@@ -8,12 +8,27 @@ import Select from '@/components/Select'
 import Textarea from '@/components/Textarea'
 import Modal from '@/components/Modal'
 import SearchSelect from '@/components/SearchSelect'
+import EnviarWhatsAppModal from '@/components/EnviarWhatsAppModal'
 
 const estadoConfig = {
   pendiente: { label: 'Pendiente', color: '#d97706' },
   enviada:   { label: 'Enviada',   color: '#16a34a' },
   fallida:   { label: 'Fallida',   color: '#910000' },
   cancelada: { label: 'Cancelada', color: '#555555' },
+}
+
+// Horario permitido para programar notificaciones: coincide con el horario
+// de atención del taller. Fuera de este rango nadie va a estar disponible
+// para hacer el envío manual desde WhatsApp Web.
+const HORA_MIN = '09:00'
+const HORA_MAX = '18:00'
+
+// Fecha de hoy en formato YYYY-MM-DD hora Argentina, para el atributo
+// min del input date (impide programar para ayer).
+function hoyISO() {
+  const now = new Date()
+  now.setHours(now.getHours() - 3)
+  return now.toISOString().split('T')[0]
 }
 
 // Personaliza el saludo inicial según el tipo de cliente.
@@ -37,7 +52,7 @@ function NotificacionModal({ notificacion, clientes, onSave, onClose }) {
     motivo:      motivoInicial,
     mensaje:     notificacion?.mensaje     ?? '',
     fecha_envio: notificacion?.fecha_envio ?? '',
-    hora_envio:  notificacion?.hora_envio  ?? '09:00',
+    hora_envio:  (notificacion?.hora_envio ?? '09:00').slice(0, 5),
     estado:      notificacion?.estado      ?? 'pendiente',
   })
   const [servicios, setServicios] = useState([])
@@ -81,6 +96,11 @@ function NotificacionModal({ notificacion, clientes, onSave, onClose }) {
     if (!form.motivo)         errs.motivo      = 'Requerido'
     if (!form.mensaje.trim()) errs.mensaje     = 'Requerido'
     if (!form.fecha_envio)    errs.fecha_envio = 'Requerido'
+    else if (form.fecha_envio < hoyISO()) errs.fecha_envio = 'La fecha no puede ser anterior a hoy'
+    if (!form.hora_envio)     errs.hora_envio  = 'Requerido'
+    else if (form.hora_envio < HORA_MIN || form.hora_envio > HORA_MAX) {
+      errs.hora_envio = `Solo entre ${HORA_MIN} y ${HORA_MAX} (horario del taller)`
+    }
     return errs
   }
 
@@ -153,14 +173,21 @@ function NotificacionModal({ notificacion, clientes, onSave, onClose }) {
             value={form.fecha_envio}
             onChange={e => set('fecha_envio', e.target.value)}
             error={errors.fecha_envio}
+            min={hoyISO()}
           />
           <Input
             label="Hora de envío"
             type="time"
             value={form.hora_envio}
             onChange={e => set('hora_envio', e.target.value)}
+            error={errors.hora_envio}
+            min={HORA_MIN}
+            max={HORA_MAX}
           />
         </div>
+        <p className="text-xs text-gray-300 -mt-2">
+          Solo se pueden programar entre las {HORA_MIN} y las {HORA_MAX}, que es cuando el taller está abierto y puede enviar los mensajes por WhatsApp.
+        </p>
 
         {notificacion && (
           <Select
@@ -192,7 +219,8 @@ export default function NotificacionesPage() {
   const [modalOpen, setModalOpen]           = useState(false)
   const [editing, setEditing]               = useState(null)
   const [deletingId, setDeletingId]         = useState(null)
-  const [sendingId, setSendingId]           = useState(null)
+  // Notificación abierta en el modal de envío por WhatsApp Web
+  const [sendingNotif, setSendingNotif]     = useState(null)
   const [search, setSearch]                 = useState('')
 
   useEffect(() => {
@@ -204,7 +232,7 @@ export default function NotificacionesPage() {
     setLoading(true)
     const { data } = await supabase
       .from('notificaciones')
-      .select('*, clientes(nombre), servicios(tipo, vehiculos(patente))')
+      .select('*, clientes(nombre, telefono), servicios(tipo, vehiculos(patente))')
       .order('fecha_envio', { ascending: true })
     setNotificaciones(data ?? [])
     setLoading(false)
@@ -226,13 +254,13 @@ export default function NotificacionesPage() {
     if (editing) {
       const { data, error } = await supabase
         .from('notificaciones').update(form).eq('id', editing.id)
-        .select('*, clientes(nombre), servicios(tipo, vehiculos(patente))').single()
+        .select('*, clientes(nombre, telefono), servicios(tipo, vehiculos(patente))').single()
       if (error) { logger.error(error); return }
       setNotificaciones(prev => prev.map(n => n.id === editing.id ? data : n))
     } else {
       const { data, error } = await supabase
         .from('notificaciones').insert(form)
-        .select('*, clientes(nombre), servicios(tipo, vehiculos(patente))').single()
+        .select('*, clientes(nombre, telefono), servicios(tipo, vehiculos(patente))').single()
       if (error) { logger.error(error); return }
       setNotificaciones(prev =>
         [...prev, data].sort((a, b) => a.fecha_envio.localeCompare(b.fecha_envio))
@@ -247,29 +275,20 @@ export default function NotificacionesPage() {
     setDeletingId(null)
   }
 
-  // Envía la notificación de inmediato (ignora fecha/hora programada)
-  async function handleSendNow(id) {
-    setSendingId(id)
-    try {
-      const { data, error } = await supabase.functions.invoke('send-notification', {
-        body: { notificacion_id: id },
-      })
+  // La query de fetchNotificaciones ya trae clientes(nombre, telefono),
+  // así que no hace falta un fetch extra al abrir el modal.
+  function handleOpenEnviar(notif) {
+    setSendingNotif(notif)
+  }
 
-      if (error || data?.error) {
-        logger.error(error ?? data.error)
-        setNotificaciones(prev =>
-          prev.map(n => n.id === id ? { ...n, estado: 'fallida', error_msg: data?.error ?? error.message } : n)
-        )
-      } else {
-        setNotificaciones(prev =>
-          prev.map(n => n.id === id ? { ...n, estado: 'enviada', enviado_at: new Date().toISOString() } : n)
-        )
-      }
-    } catch (err) {
-      logger.error(err)
-    } finally {
-      setSendingId(null)
-    }
+  function handleEnviadaLocal() {
+    // Actualización optimista: marcamos como enviada en la tabla sin refetch.
+    if (!sendingNotif) return
+    setNotificaciones(prev => prev.map(n =>
+      n.id === sendingNotif.id
+        ? { ...n, estado: 'enviada', enviado_at: new Date().toISOString() }
+        : n
+    ))
   }
 
   const pendientes = notificaciones.filter(n => n.estado === 'pendiente').length
@@ -360,12 +379,8 @@ export default function NotificacionesPage() {
                       ) : (
                         <>
                           {n.estado === 'pendiente' && (
-                            <Button
-                              size="sm"
-                              onClick={() => handleSendNow(n.id)}
-                              loading={sendingId === n.id}
-                            >
-                              Enviar ahora
+                            <Button size="sm" onClick={() => handleOpenEnviar(n)}>
+                              <MessageCircle size={13} /> Enviar por WhatsApp
                             </Button>
                           )}
                           <Button size="sm" variant="secondary" onClick={() => openEdit(n)}>Editar</Button>
@@ -387,6 +402,14 @@ export default function NotificacionesPage() {
           clientes={clientes}
           onSave={handleSave}
           onClose={() => setModalOpen(false)}
+        />
+      )}
+
+      {sendingNotif && (
+        <EnviarWhatsAppModal
+          notificacion={sendingNotif}
+          onEnviada={handleEnviadaLocal}
+          onClose={() => setSendingNotif(null)}
         />
       )}
     </div>

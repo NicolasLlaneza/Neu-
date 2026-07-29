@@ -2,6 +2,7 @@ import Sidebar from './Sidebar'
 import Topbar from './Topbar'
 import BottomNav from './BottomNav'
 import InactivityWarning from '@/components/InactivityWarning'
+import NotifVencidaToast from '@/components/NotifVencidaToast'
 import { useInactivityTimeout } from '@/hooks/useInactivityTimeout'
 import { supabase } from '@/lib/supabase'
 import { useNavigate } from 'react-router-dom'
@@ -30,6 +31,8 @@ export default function AppLayout({ children }) {
           onLogout={handleLogout}
         />
       )}
+
+      <NotifVencidaToast />
     </div>
   )
 }

@@ -10,7 +10,6 @@ const titles = {
   '/vehiculos':       'Vehículos',
   '/servicios':       'Servicios',
   '/notificaciones':  'Notificaciones',
-  '/config/whatsapp': 'WhatsApp',
   '/config/usuarios': 'Usuarios',
 }
 
