@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { X, Plus, Loader2, Image as ImageIcon } from 'lucide-react'
 import imageCompression from 'browser-image-compression'
 import { supabase } from '@/lib/supabase'
@@ -80,6 +80,19 @@ export default function FotoGallery({ servicioId, onPendingChange }) {
       onPendingChange(pending.map(p => p.file))
     }
   }, [pending, persistido, onPendingChange])
+
+  // Las preview URLs de las fotos pendientes son blobs en memoria.
+  // Si el modal se cierra sin guardar, quedarían huérfanas hasta el
+  // próximo refresh. Guardamos las vigentes en un ref para poder
+  // revocarlas al desmontar sin re-ejecutar el cleanup en cada cambio.
+  const pendingUrlsRef = useRef([])
+  useEffect(() => {
+    pendingUrlsRef.current = pending.map(p => p.previewUrl)
+  }, [pending])
+
+  useEffect(() => () => {
+    pendingUrlsRef.current.forEach(url => URL.revokeObjectURL(url))
+  }, [])
 
   const totalActual = persistido ? fotos.length : pending.length
 

@@ -15,25 +15,31 @@
 
 import { serve }        from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { jsonResponse, preflight } from '../_shared/cors.ts'
 
 const TURNSTILE_SECRET  = Deno.env.get('TURNSTILE_SECRET_KEY')!
 const SITEVERIFY_URL    = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
 
 // Rate limit: máximo de consultas por IP en la última hora.
 // Complementa al CAPTCHA para evitar enumeración manual.
-const RATE_LIMIT_MAX     = 30
-const RATE_LIMIT_WINDOW  = '1 hour'
+const RATE_LIMIT_MAX = 30
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin':  '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
+// Dominios desde los que aceptamos tokens de Turnstile. Sin este chequeo,
+// alguien que copie el site key (que es público) podría generar tokens
+// válidos desde su propio sitio y usarlos contra este endpoint.
+// Se configura con TURNSTILE_ALLOWED_HOSTNAMES (separados por coma) para
+// poder sumar el dominio definitivo sin redeployar la función.
+const ALLOWED_HOSTNAMES = (
+  Deno.env.get('TURNSTILE_ALLOWED_HOSTNAMES') ?? 'neumas.pages.dev,localhost'
+)
+  .split(',')
+  .map(h => h.trim().toLowerCase())
+  .filter(Boolean)
 
 serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: CORS_HEADERS })
-  }
+  if (req.method === 'OPTIONS') return preflight(req)
+
+  const json = (data: unknown, status = 200) => jsonResponse(req, data, status)
 
   const { patente, turnstile_token } = await req.json().catch(() => ({}))
 
@@ -97,6 +103,20 @@ serve(async (req: Request) => {
     }, 403)
   }
 
+  // El token es válido, pero ¿fue emitido para nuestro sitio?
+  //
+  // Las claves de prueba de Cloudflare siempre devuelven hostname
+  // "example.com", así que validar contra la whitelist rompería el flujo
+  // en desarrollo. Cloudflare marca esos casos con
+  // metadata.result_with_testing_key: cuando aparece, el hostname no
+  // tiene valor de seguridad y salteamos el chequeo.
+  const conClaveDePrueba = verification?.metadata?.result_with_testing_key === true
+  const tokenHostname = String(verification.hostname ?? '').toLowerCase()
+
+  if (!conClaveDePrueba && tokenHostname && !ALLOWED_HOSTNAMES.includes(tokenHostname)) {
+    return json({ error: 'Origen no autorizado' }, 403)
+  }
+
   // 2. Token válido → registrar la consulta y llamar a la RPC
   // (fire-and-forget: si falla el insert, no bloqueamos la respuesta)
   supabase.from('consulta_publica_log').insert({
@@ -140,10 +160,3 @@ serve(async (req: Request) => {
 
   return json(data)
 })
-
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
-  })
-}

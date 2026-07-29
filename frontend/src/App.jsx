@@ -4,6 +4,8 @@ import ProtectedRoute from '@/routes/ProtectedRoute'
 import AppLayout from '@/layouts/AppLayout'
 
 import LoginPage from '@/pages/auth/LoginPage'
+import RecuperarPasswordPage from '@/pages/auth/RecuperarPasswordPage'
+import NuevaPasswordPage from '@/pages/auth/NuevaPasswordPage'
 import ConsultaPublicaPage from '@/pages/consulta-publica/ConsultaPublicaPage'
 import ClientesPage from '@/pages/clientes/ClientesPage'
 import VehiculosPage from '@/pages/vehiculos/VehiculosPage'
@@ -22,6 +24,8 @@ export default function App() {
         <Routes>
           {/* Rutas públicas */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/recuperar-password" element={<RecuperarPasswordPage />} />
+          <Route path="/nueva-password" element={<NuevaPasswordPage />} />
           <Route path="/consulta" element={<ConsultaPublicaPage />} />
           <Route path="/privacidad" element={<PrivacidadPage />} />
           <Route path="/terminos" element={<TerminosPage />} />

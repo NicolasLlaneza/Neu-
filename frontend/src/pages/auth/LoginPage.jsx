@@ -98,6 +98,13 @@ export default function LoginPage() {
           >
             {submitting ? 'Ingresando...' : 'Ingresar'}
           </button>
+
+          <a
+            href="/recuperar-password"
+            className="block text-center text-xs text-gray-200 hover:text-gray-100 transition-colors"
+          >
+            Olvidé mi contraseña
+          </a>
         </form>
 
         {/* Footer legal */}

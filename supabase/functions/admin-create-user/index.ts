@@ -13,20 +13,15 @@
 
 import { serve }        from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin':  '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
+import { jsonResponse, preflight } from '../_shared/cors.ts'
 
 const ROLES_VALIDOS = ['admin', 'superadmin']
 const MIN_PASSWORD  = 12   // debe coincidir con la política de Supabase Auth
 
 serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: CORS_HEADERS })
-  }
+  if (req.method === 'OPTIONS') return preflight(req)
+
+  const json = (data: unknown, status = 200) => jsonResponse(req, data, status)
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -96,10 +91,3 @@ serve(async (req: Request) => {
     },
   })
 })
-
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
-  })
-}
