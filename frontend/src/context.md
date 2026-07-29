@@ -1,144 +1,158 @@
-## Estado actual
-✅ Frontend con Vite + React + Tailwind funcionando
-✅ Estructura de carpetas profesional creada
-✅ Alias `@/` configurado para imports limpios
-✅ Proyecto en Supabase creado (region: São Paulo, plan free)
-✅ Tablas creadas: profiles, clientes, vehiculos, servicios, fotos_servicio, notificaciones
-✅ Row Level Security activo en todas las tablas
-✅ Políticas de seguridad definidas
-✅ Frontend conectado con Supabase (cliente JS + .env)
-✅ React Router con rutas protegidas (ProtectedRoute con verificación de profile.activo)
-✅ Login con Supabase Auth
-✅ Componentes base reutilizables (Button, Input, Select, Textarea, Modal, Card, SearchSelect)
-✅ Layout con Sidebar + Topbar (desktop) y BottomNav (mobile)
-✅ CRUD completo de clientes, vehículos, servicios y notificaciones
-✅ Búsqueda en todas las páginas
-✅ Soft delete con filtro "Ver bajas" en clientes y vehículos
-✅ Pantalla de consulta pública por patente (con Turnstile)
-✅ Deploy en Vercel funcionando
-✅ Diseño responsive (mobile-first con bottom nav)
-✅ Timeout de sesión por inactividad (30 min con aviso a los 60s)
-✅ Edge Functions de WhatsApp preparadas (send-notification + process-notifications)
-✅ Triggers de auditoría infalsificables en BD
+# NEU+ — Estado del proyecto
+
+Sistema de seguimiento post-venta para taller de neumáticos (Calper SA).
+
+- **Repo**: github.com/NicolasLlaneza/Neu- (privado)
+- **Frontend**: React 18 + Vite + Tailwind, deployado en Cloudflare Pages → `neumas.pages.dev`
+- **Backend**: Supabase (Postgres + Auth + Edge Functions + Storage), región São Paulo
+- **Usuarios previstos**: 6 (3 superadmins, 3 admins)
+
+---
+
+## Funcionalidad
+
+### Gestión
+- CRUD de **clientes** con tipo persona/empresa (labels y campos que cambian según tipo), documento (DNI/CUIT), contacto para empresas, y filtro por pestañas Todos/Personas/Empresas
+- CRUD de **vehículos** con detección automática del tipo de patente (viejo `ABC123`, Mercosur `AB123CD`, moto `A123BC`)
+- CRUD de **servicios** con tipos predefinidos + libre, importe, kilometraje y marca de **cobrado** (con fecha automática)
+- CRUD de **notificaciones** programadas por WhatsApp
+- Búsqueda en todas las páginas; soft delete con filtro "ver bajas" en clientes y vehículos
+
+### Alta rápida desde servicios
+El modal de servicio permite crear vehículo y cliente sin salir de la pantalla. Detecta clientes duplicados por teléfono (debounce 400 ms) y ofrece reutilizar el existente. Los tres inserts corren en **una transacción SQL** (`crear_servicio_completo`): si algo falla, no quedan registros huérfanos.
+
+### Fotos
+Hasta 5 por servicio, comprimidas en el navegador (máx 0,5 MB / 1600 px) antes de subir. Bucket privado con URLs firmadas de 1 hora. Se pueden cargar al crear el servicio (quedan en memoria con badge "Pendiente" y se suben al guardar) o al editarlo.
+
+### Consulta pública
+El cliente ingresa su patente y ve marca, modelo, historial de servicios y fotos. **No expone el nombre del titular** (Ley 25.326). Protegida con CAPTCHA verificado del lado del servidor y rate limit por IP.
+
+### Panel de inicio
+- **Alertas accionables**: servicios sin cobrar (con monto), clientes sin volver hace 6+ meses, notificaciones fallidas
+- **KPIs del mes**: facturado, cantidad de servicios, ticket promedio, clientes nuevos
+- **Tablas**: pendientes de cobro y clientes dormidos con acceso directo para contactarlos
+- **Ranking** de servicios más frecuentes (últimos 6 meses, barras CSS sin librería)
+- **Actividad reciente** (solo superadmin): quién registró qué y cuándo. Es un registro **neutral de volumen operativo**, no un ranking de productividad — decisión deliberada, alineada con el comentario original del schema
+
+### Gestión de usuarios (solo superadmin)
+Alta con contraseña temporal generada (sin caracteres ambiguos), pantalla post-alta con credenciales y botón de copiar, cambio de rol inline, baja y reactivación. La propia fila queda bloqueada: un superadmin no puede darse de baja ni quitarse el rol, para que nadie deje al sistema sin administradores.
+
+### Recuperación de contraseña
+Flujo por email con enlace de una hora. La pantalla de solicitud **no revela si la cuenta existe** (evita enumeración de usuarios).
+
+---
 
 ## Seguridad
-✅ RLS abierta en `vehiculos` cerrada
-✅ `consulta_publica` no expone nombre del titular (Ley 25.326)
-✅ Logger condicional (no filtra errores en producción)
-✅ Password mínima configurada en Supabase
-⏳ Turnstile en login (esperando dominio propio del cliente)
-⏳ Verificación server-side de Turnstile en consulta pública (idem)
 
-## Pendiente fuera del código
-🔲 Coordinar acceso a Meta Business con el cliente (Business Manager ya creado)
-🔲 Aprobación de WhatsApp Business API (3-14 días)
-🔲 Aprobación de plantillas de mensajes (2-5 días)
-🔲 Configurar variables de entorno en Edge Functions: WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_ACCESS_TOKEN, INTERNAL_SECRET
-🔲 Registro de base de datos en AAIP (Ley 25.326) — cuando autoricen comercialización
-🔲 Redactar Política de Privacidad y Términos de Uso
-🔲 Dominio propio del cliente para habilitar Turnstile
-
----
-
-## Features planeadas
-
-### 1. Sistema de órdenes de trabajo (mecánicos → admin → presupuesto)
-
-**Objetivo:** Que los mecánicos puedan cargar desde su celular qué hay que hacerle a un vehículo, que llegue al admin para autorizar, y que se convierta en presupuesto.
-
-**Flujo propuesto:**
-```
-Mecánico carga "orden de trabajo"
-       ↓
-   Estado: pendiente_autorizacion
-       ↓
-Admin recibe notificación in-app
-       ↓
-   Admin aprueba o rechaza
-       ↓
-Si aprueba → se convierte en borrador de presupuesto
-Si rechaza → mecánico recibe feedback (opcional)
-```
-
-**Modelo de datos propuesto:**
-
-Tabla `ordenes_trabajo`:
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| id | uuid | |
-| vehiculo_id | uuid → vehiculos | |
-| cliente_id | uuid → clientes | desnormalizado |
-| mecanico_id | uuid → profiles | quien la cargó |
-| diagnostico | text | descripción libre del mecánico |
-| urgencia | enum | baja / media / alta |
-| estado | enum | pendiente / autorizada / rechazada / presupuestada |
-| autorizada_por | uuid → profiles | admin que aprobó |
-| autorizada_at | timestamptz | |
-| motivo_rechazo | text | si fue rechazada |
-| created_at | timestamptz | |
-
-Tabla `orden_items` (lo que el mecánico identifica que hay que hacer):
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| id | uuid | |
-| orden_id | uuid → ordenes_trabajo | |
-| descripcion | text | ej: "cambiar pastillas delanteras" |
-| tipo | enum | repuesto / servicio / diagnostico |
-| cantidad_estimada | integer | |
-| observaciones | text | |
-
-**Cambios necesarios:**
-- Nuevo rol `mecanico` en `profiles.rol` (además de admin/superadmin)
-- Vista limitada para mecánicos: solo ven sus órdenes pendientes y crear nuevas
-- Vista de admin: bandeja de órdenes pendientes para autorizar
-- Botón "Convertir en presupuesto" cuando está autorizada
-- RLS específica: mecánicos solo ven sus propias órdenes; admins ven todas
-
-**Consideraciones:**
-- ¿El mecánico necesita poder agregar fotos a la orden? (probablemente sí — sirve de evidencia)
-- ¿Hay límite de tiempo para que el admin responda? (timeout que la marque como vencida)
-- ¿Hay notificación push o solo se ve al abrir la app?
+| Medida | Detalle |
+|---|---|
+| Row Level Security | Activo en todas las tablas, con funciones `SECURITY DEFINER` para evitar recursión |
+| Auditoría infalsificable | Triggers setean `creado_por` / `registrado_por` / `programado_por` con `auth.uid()`; el valor que mande el cliente se ignora |
+| CAPTCHA server-side | Turnstile verificado contra Cloudflare antes de devolver datos; el RPC quedó revocado para `anon` |
+| Validación de hostname | El site key es público: se valida que el token venga de un dominio autorizado |
+| Rate limit | Máx 30 consultas públicas por IP/hora, con limpieza diaria de los logs |
+| CORS restringido | Whitelist de orígenes con `Vary: Origin`, configurable por env var |
+| Transaccionalidad | Alta de cliente+vehículo+servicio en una sola transacción |
+| Datos personales | La consulta pública no expone al titular; Sentry configurado sin PII |
+| Consentimiento WhatsApp | Campo explícito por cliente con fecha; filtrado en el cron y en el envío directo |
+| Sesión | Timeout por inactividad (30 min, aviso a los 60 s); `ProtectedRoute` verifica `profile.activo` |
+| Auto-lockout | Un superadmin no puede quitarse el rol ni darse de baja |
+| Backups | Dump semanal automático (el plan free de Supabase no incluye backups) |
+| Monitoreo | Sentry solo en producción, sin datos personales |
 
 ---
 
-### 2. QR code para la consulta pública
+## Base de datos
 
-**Objetivo:** Simplificar el acceso del cliente a su historial de servicios. En lugar de tipear una URL larga + patente, escanea un QR.
+**Tablas**: `profiles`, `clientes`, `vehiculos`, `servicios`, `fotos_servicio`, `notificaciones`, `configuracion_whatsapp`, `consulta_publica_log`
 
-**Opciones de implementación:**
+**Migrations** (`supabase/migrations/`):
 
-**Opción A — QR genérico** (un solo QR para todo el taller):
-- URL: `https://app.com/consulta`
-- El cliente escanea y le aparece la pantalla de "Ingresá tu patente"
-- Ventajas: imprimís un solo QR y lo pegás en el taller, en facturas, etc.
-- Desventajas: el cliente igual tiene que escribir la patente
+| # | Contenido |
+|---|---|
+| 001 | Schema inicial, RLS, triggers de auditoría |
+| 002 | Auto-creación de perfil al registrar usuario |
+| 003 | Cron de notificaciones cada 5 min (pg_cron + pg_net) |
+| 004 | `configuracion_whatsapp` (Embedded Signup) |
+| 005 | Consentimiento de WhatsApp por cliente |
+| 006 | Revoca `consulta_publica` para el rol `anon` |
+| 007 | Tipo de cliente persona/empresa |
+| 008 | Campo `cobrado` + fecha de cobro |
+| 009 | `consulta_publica` devuelve fotos |
+| 010 | RPC `crear_servicio_completo` (transaccional) |
+| 011 | Rate limit de consulta pública |
+| 012 | Auditoría en vehículos, gestión de usuarios, índices del panel |
 
-**Opción B — QR personalizado por vehículo** (un QR por cliente/auto):
-- URL: `https://app.com/consulta?p=AB123CD` o `https://app.com/c/{token}`
-- El QR ya trae la patente embebida, salta directo al historial
-- Ventajas: experiencia más fluida, escanea y ve su historial
-- Desventajas: hay que generar un QR por auto e imprimir/enviar
+**Edge Functions** (`supabase/functions/`):
+- `send-notification` — envía un WhatsApp; acepta secret interno (cron) o JWT de admin (botón "Enviar ahora")
+- `process-notifications` — corre cada 5 min, busca pendientes vencidas y las dispara
+- `consulta-publica` — verifica CAPTCHA + rate limit, llama al RPC y firma las URLs de las fotos
+- `exchange-fb-code` — intercambia el code del Embedded Signup por access token
+- `admin-create-user` — alta de usuario (auth + perfil), solo superadmin
+- `_shared/cors.ts` — whitelist de orígenes compartida
 
-**Recomendación:** Implementar las dos.
-- QR genérico impreso y plotteado en el taller (cartel en pared)
-- QR personalizado en cada factura/comprobante de servicio (más útil para fidelización)
+---
 
-**Cambios técnicos necesarios:**
-- Aceptar `?p=PATENTE` como query param en `ConsultaPublicaPage` y precargar/buscar automático
-- (Opcional, más seguro) Generar tokens efímeros: tabla `consulta_tokens` con `vehiculo_id` y `expira_at` para que los QR no se compartan eternamente
-- Librería de QR: `qrcode.react` para generar los QR desde el frontend
-- Botón "Generar QR" en la ficha del vehículo o servicio → descarga PNG/PDF
-- Opcional: incluir el QR generado en el mensaje de WhatsApp que se manda con la notificación
+## Testing y calidad
 
-**Consideraciones de seguridad:**
-- Si va con patente directa, cualquiera con foto del QR ve el historial. Aceptable si el contenido ya es público vía consulta_publica.
-- Si va con token efímero, hay que considerar cómo se renueva (¿al imprimir factura nueva? ¿on-demand?)
+- **30 tests** con Vitest sobre `src/lib/` (patente, teléfono, fecha)
+- **GitHub Action** corre tests + build en cada push a `master`
+- **Code splitting** por ruta: bundle inicial 121 KB gzip (la librería de compresión de imágenes, 28 KB, solo baja al entrar a Servicios)
+- Guía del patrón de tests en `docs/TESTING.md`
+
+---
+
+## Estado de WhatsApp
+
+Funciona técnicamente end-to-end, pero está **bloqueado por Meta** para producción.
+
+- ✅ Envío verificado con número de prueba
+- ✅ System User `neumasbot` con token permanente
+- ✅ Cron corriendo cada 5 minutos
+- ✅ Coexistence configurado a nivel WABA (el número sigue en el celular del taller)
+- ❌ **Embedded Signup bloqueado**: Meta exige Business Verification + App Review para que un Tech Provider registre clientes
+
+**Camino pendiente**: Business Verification (3-14 días, requiere CUIT de AFIP, estatuto de Calper SA, habilitación municipal, factura de servicios) → App Review (1-3 semanas, requiere video del flujo + política de privacidad publicada ✅).
+
+Mientras tanto el sistema queda operativo sin envío automático: se cargan las notificaciones y se envían cuando Meta habilite.
+
+---
+
+## Pendiente
+
+### Configuración (afuera del código)
+- 🔲 `VITE_SENTRY_DSN` en Cloudflare Pages
+- 🔲 `SUPABASE_DB_URL` como secret del repo (para el backup)
+- 🔲 Redirect URLs de recuperación en Supabase Auth (`/nueva-password`)
+- 🔲 Registro de la base ante la **AAIP** (obligatorio, gratis, trámite online)
+- 🔲 Dominio propio del cliente (DonWeb) → actualizar `ALLOWED_ORIGINS`, `TURNSTILE_ALLOWED_HOSTNAMES` y los dominios en Meta
+- 🔲 Claves reales de Turnstile (hoy están las de prueba)
+- 🔲 Business Verification + App Review en Meta
+
+### Mejoras identificadas, no bloqueantes
+- Exportar a Excel/CSV (contabilidad y seguros siempre lo piden)
+- Paginación en tablas (hoy va bien; a los 500+ registros se va a notar)
+- 2FA para admins (Supabase Auth soporta TOTP)
+- Cifrado del dump de backup (hoy va en claro en un repo privado)
+- SMTP propio (el default de Supabase permite 3-4 mails/hora y suele caer en spam)
+- Filtros avanzados por fecha/tipo/estado
+- Historial de cambios completo (hoy solo se registra quién creó, no quién editó)
+
+### Features planeadas
+
+**Órdenes de trabajo** (mecánicos → admin → presupuesto)
+Un mecánico carga desde el celular qué hay que hacerle a un vehículo; el admin autoriza o rechaza; al autorizar se convierte en presupuesto. Requiere rol `mecanico`, tablas `ordenes_trabajo` + `orden_items`, RLS específica y bandeja de autorización. Definir si el mecánico puede adjuntar fotos y si hay vencimiento de la orden.
+
+**QR para consulta pública**
+Dos usos complementarios: un QR genérico plotteado en el taller (lleva a `/consulta`) y uno personalizado por vehículo en cada comprobante (`?p=PATENTE`, salta directo al historial). Requiere leer el query param y `qrcode.react`. Si se quiere que los QR no sirvan para siempre, hace falta una tabla de tokens efímeros.
+
+**Módulo de presupuestos**
+Con conversión desde orden de trabajo aprobada.
 
 ---
 
 ## Filosofía de desarrollo
-- Aprender el "por qué" de cada decisión, no solo el "cómo"
-- Calidad sobre velocidad — mejor tardar más y que quede bien
-- Documentar todo en README con changelog diario
+- Entender el "por qué" de cada decisión, no solo el "cómo"
+- Calidad sobre velocidad
 - Código mantenible y comentado
-- Pensar en seguridad desde el día uno
+- Seguridad desde el día uno
