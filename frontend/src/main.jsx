@@ -3,7 +3,11 @@ import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import './styles/index.css'
 import { initSentry, Sentry } from './lib/sentry'
+import { validarEnv } from './lib/env'
 
+// Validar env vars al inicio, antes de renderizar nada:
+// mejor un error explícito acá que fallos oscuros dentro de la app.
+validarEnv()
 initSentry()
 
 // Pantalla de último recurso: si un error escapa a toda la app, al menos

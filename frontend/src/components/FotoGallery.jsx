@@ -3,8 +3,8 @@ import { X, Plus, Loader2, Image as ImageIcon } from 'lucide-react'
 import imageCompression from 'browser-image-compression'
 import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
+import { BUCKET_FOTOS as BUCKET } from '@/lib/fotosServicio'
 
-const BUCKET      = 'fotos-servicio'
 const MAX_FOTOS   = 5
 const MAX_MB      = 0.5
 const MAX_WIDTH   = 1600
@@ -297,40 +297,6 @@ export default function FotoGallery({ servicioId, onPendingChange }) {
   )
 }
 
-/**
- * Sube una lista de blobs comprimidos al bucket y los registra en la BD.
- * Se usa desde ServicioModal después de crear un servicio nuevo,
- * cuando el usuario había cargado fotos en modo pendiente.
- */
-export async function uploadPendingFotos(servicioId, files) {
-  if (!files || files.length === 0) return { ok: true, count: 0 }
-
-  const errors = []
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i]
-    try {
-      const uuid = crypto.randomUUID()
-      const path = `servicios/${servicioId}/${uuid}.jpg`
-
-      const { error: uploadError } = await supabase.storage
-        .from(BUCKET)
-        .upload(path, file, { contentType: 'image/jpeg', upsert: false })
-      if (uploadError) throw uploadError
-
-      const { error: insertError } = await supabase
-        .from('fotos_servicio')
-        .insert({
-          servicio_id:  servicioId,
-          url:          '',
-          storage_path: path,
-          orden:        i,
-        })
-      if (insertError) throw insertError
-    } catch (err) {
-      logger.error(err)
-      errors.push(err.message ?? String(err))
-    }
-  }
-
-  return { ok: errors.length === 0, count: files.length - errors.length, errors }
-}
+// uploadPendingFotos se movió a src/lib/fotosServicio.js para permitir
+// importarlo sin arrastrar imageCompression al bundle de los callers.
+export { uploadPendingFotos } from '@/lib/fotosServicio'

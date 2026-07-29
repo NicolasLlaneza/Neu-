@@ -7,12 +7,7 @@ import Input from '@/components/Input'
 import Select from '@/components/Select'
 import Modal from '@/components/Modal'
 
-const estadoConfig = {
-  nuevo:   { label: 'Nuevo',   color: '#666666' },
-  ok:      { label: 'OK',      color: '#16a34a' },
-  proximo: { label: 'Próximo', color: '#d97706' },
-  urgente: { label: 'Urgente', color: '#910000' },
-}
+import { estadoCliente as estadoConfig } from '@/lib/badges'
 
 // Botón de pestaña reutilizable para el filtro por tipo
 function TabButton({ active, onClick, label, count }) {

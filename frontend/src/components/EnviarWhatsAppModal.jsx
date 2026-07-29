@@ -3,6 +3,7 @@ import { MessageCircle, ExternalLink, Check, X, AlertTriangle } from 'lucide-rea
 import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
 import { abrirWhatsApp } from '@/lib/whatsapp'
+import { emitirNotifActualizada } from '@/lib/eventos'
 import Modal from '@/components/Modal'
 import Button from '@/components/Button'
 
@@ -54,6 +55,12 @@ export default function EnviarWhatsAppModal({ notificacion, onEnviada, onClose }
       setError('No se pudo marcar como enviada: ' + error.message)
       return
     }
+    // Notificamos globalmente: cualquier vista abierta (tabla, toast,
+    // widget de inicio) puede actualizar sin refetch completo.
+    emitirNotifActualizada({
+      id:     notificacion.id,
+      estado: 'enviada',
+    })
     onEnviada?.()
     onClose()
   }

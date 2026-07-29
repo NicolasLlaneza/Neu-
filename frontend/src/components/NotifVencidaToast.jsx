@@ -3,6 +3,7 @@ import { Bell, X, MessageCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
 import { estaProntoAVencer } from '@/lib/fecha'
+import { EVENTOS, suscribirseA } from '@/lib/eventos'
 import EnviarWhatsAppModal from './EnviarWhatsAppModal'
 import Button from './Button'
 
@@ -59,21 +60,48 @@ export default function NotifVencidaToast() {
     if (Date.now() >= snoozeHastaRef.current) setOculto(false)
   }, [])
 
+  // Escuchar cuando alguien marca una notificación como enviada desde
+  // cualquier vista: la sacamos del toast al toque, sin refetch.
   useEffect(() => {
-    fetchPendientes()
-    const interval = setInterval(fetchPendientes, POLL_MS)
-    return () => clearInterval(interval)
+    return suscribirseA(EVENTOS.notifActualizada, (e) => {
+      const { id, estado } = e.detail ?? {}
+      if (estado && estado !== 'pendiente') {
+        setPendientes(prev => prev.filter(n => n.id !== id))
+      }
+    })
+  }, [])
+
+  // Polling activo solo cuando la pestaña está visible: sin nadie mirando,
+  // consumir queries no aporta nada (nadie va a ver el toast). Ahorra
+  // ~260k queries/mes con 6 usuarios logueados dejando tabs abiertas.
+  // Al volver a estar visible, refetch inmediato para no esperar el próximo ciclo.
+  useEffect(() => {
+    let interval = null
+
+    function iniciarPolling() {
+      fetchPendientes()
+      interval = setInterval(fetchPendientes, POLL_MS)
+    }
+    function detenerPolling() {
+      if (interval) { clearInterval(interval); interval = null }
+    }
+    function handleVisibility() {
+      if (document.visibilityState === 'visible') iniciarPolling()
+      else detenerPolling()
+    }
+
+    if (document.visibilityState === 'visible') iniciarPolling()
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      detenerPolling()
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
   }, [fetchPendientes])
 
   function handleCerrar() {
     setOculto(true)
     snoozeHastaRef.current = Date.now() + SNOOZE_MS
-  }
-
-  function handleEnviada() {
-    // Refresh inmediato: la notificación desaparece del toast si era
-    // la que se envió, o queda la próxima en la lista.
-    fetchPendientes()
   }
 
   if (oculto || pendientes.length === 0) return null
@@ -125,7 +153,6 @@ export default function NotifVencidaToast() {
       {sendingNotif && (
         <EnviarWhatsAppModal
           notificacion={sendingNotif}
-          onEnviada={handleEnviada}
           onClose={() => setSendingNotif(null)}
         />
       )}

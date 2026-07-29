@@ -9,13 +9,9 @@ import Textarea from '@/components/Textarea'
 import Modal from '@/components/Modal'
 import SearchSelect from '@/components/SearchSelect'
 import EnviarWhatsAppModal from '@/components/EnviarWhatsAppModal'
+import { EVENTOS, suscribirseA } from '@/lib/eventos'
 
-const estadoConfig = {
-  pendiente: { label: 'Pendiente', color: '#d97706' },
-  enviada:   { label: 'Enviada',   color: '#16a34a' },
-  fallida:   { label: 'Fallida',   color: '#910000' },
-  cancelada: { label: 'Cancelada', color: '#555555' },
-}
+import { estadoNotificacion as estadoConfig } from '@/lib/badges'
 
 // Horario permitido para programar notificaciones: coincide con el horario
 // de atención del taller. Fuera de este rango nadie va a estar disponible
@@ -228,6 +224,20 @@ export default function NotificacionesPage() {
     fetchClientes()
   }, [])
 
+  // Actualizar en vivo cuando otra vista (toast, /inicio) marca una
+  // notif como enviada. Evita refetch de toda la tabla.
+  useEffect(() => {
+    return suscribirseA(EVENTOS.notifActualizada, (e) => {
+      const { id, estado } = e.detail ?? {}
+      if (!id) return
+      setNotificaciones(prev => prev.map(n =>
+        n.id === id
+          ? { ...n, estado: estado ?? n.estado, enviado_at: new Date().toISOString() }
+          : n
+      ))
+    })
+  }, [])
+
   async function fetchNotificaciones() {
     setLoading(true)
     const { data } = await supabase
@@ -279,16 +289,6 @@ export default function NotificacionesPage() {
   // así que no hace falta un fetch extra al abrir el modal.
   function handleOpenEnviar(notif) {
     setSendingNotif(notif)
-  }
-
-  function handleEnviadaLocal() {
-    // Actualización optimista: marcamos como enviada en la tabla sin refetch.
-    if (!sendingNotif) return
-    setNotificaciones(prev => prev.map(n =>
-      n.id === sendingNotif.id
-        ? { ...n, estado: 'enviada', enviado_at: new Date().toISOString() }
-        : n
-    ))
   }
 
   const pendientes = notificaciones.filter(n => n.estado === 'pendiente').length
@@ -408,7 +408,6 @@ export default function NotificacionesPage() {
       {sendingNotif && (
         <EnviarWhatsAppModal
           notificacion={sendingNotif}
-          onEnviada={handleEnviadaLocal}
           onClose={() => setSendingNotif(null)}
         />
       )}

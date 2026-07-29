@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import {
   DollarSign, Wrench, UserPlus, Receipt,
@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import logger from '@/lib/logger'
 import { formatFechaAR, formatFechaHoraAR, estaDentroDeLasProximas } from '@/lib/fecha'
+import { EVENTOS, suscribirseA } from '@/lib/eventos'
 import EnviarWhatsAppModal from '@/components/EnviarWhatsAppModal'
 import Button from '@/components/Button'
 import { MessageCircle, CalendarClock } from 'lucide-react'
@@ -45,30 +46,12 @@ export default function InicioPage() {
 
   const esSuperadmin = profile?.rol === 'superadmin'
 
-  useEffect(() => { fetchDatos() }, [esSuperadmin])
-
-  // Refresh cuando la pestaña vuelve a estar visible.
-  // Cubre el caso: usuario marca un servicio como cobrado en /servicios,
-  // vuelve a /inicio y esperaría ver el KPI actualizado. Si el navegador
-  // mantiene el componente vivo (o si volvió desde otra pestaña) los datos
-  // quedarían viejos.
-  useEffect(() => {
-    function refetchSiVisible() {
-      if (document.visibilityState === 'visible') fetchDatos()
-    }
-    document.addEventListener('visibilitychange', refetchSiVisible)
-    window.addEventListener('focus', refetchSiVisible)
-    return () => {
-      document.removeEventListener('visibilitychange', refetchSiVisible)
-      window.removeEventListener('focus', refetchSiVisible)
-    }
-  }, [])
-
-  async function fetchDatos() {
+  // fetchDatos memoizada para poder usarla como dep del useEffect de
+  // visibilitychange sin re-crear listeners en cada render.
+  const fetchDatos = useCallback(async () => {
     setLoading(true)
     try {
       const desdeMes = primerDiaDelMes()
-      const umbral   = hace(MESES_INACTIVIDAD)
 
       const [
         sinCobrar,
@@ -79,6 +62,7 @@ export default function InicioPage() {
         notifsProximas,
         tiposServicio,
         actividad,
+        dormidosRes,
       ] = await Promise.all([
         // Servicios sin cobrar (con datos de contacto para poder accionar)
         supabase
@@ -137,22 +121,13 @@ export default function InicioPage() {
               .order('created_at', { ascending: false })
               .limit(15)
           : Promise.resolve({ data: [] }),
+
+        // Clientes dormidos: RPC agregada en migration 013
+        // (evita traer todos los servicios de todos los clientes).
+        supabase.rpc('clientes_dormidos', { p_meses: MESES_INACTIVIDAD }),
       ])
 
-      // ── Clientes dormidos: activos sin servicios recientes ──
-      const { data: clientesActivos } = await supabase
-        .from('clientes')
-        .select('id, nombre, telefono, servicios(fecha)')
-        .eq('activo', true)
-
-      const dormidos = (clientesActivos ?? []).filter(c => {
-        if (!c.servicios || c.servicios.length === 0) return false
-        const ultima = c.servicios
-          .map(s => s.fecha)
-          .sort()
-          .at(-1)
-        return ultima < umbral
-      })
+      const dormidos = dormidosRes.data ?? []
 
       // ── Ranking de tipos de servicio ──
       const conteo = {}
@@ -194,7 +169,38 @@ export default function InicioPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [esSuperadmin])
+
+  useEffect(() => { fetchDatos() }, [fetchDatos])
+
+  // Al marcar una notif como enviada desde otro componente (toast o
+  // NotificacionesPage), la sacamos del widget de próximas 24hs sin refetch.
+  useEffect(() => {
+    return suscribirseA(EVENTOS.notifActualizada, (e) => {
+      const { id, estado } = e.detail ?? {}
+      if (estado && estado !== 'pendiente') {
+        setData(prev => prev
+          ? { ...prev, proximas: prev.proximas.filter(n => n.id !== id) }
+          : prev
+        )
+      }
+    })
+  }, [])
+
+  // Refresh cuando la pestaña vuelve a estar visible.
+  // Cubre el caso: usuario marca un servicio como cobrado en /servicios,
+  // vuelve a /inicio y esperaría ver el KPI actualizado.
+  useEffect(() => {
+    function refetchSiVisible() {
+      if (document.visibilityState === 'visible') fetchDatos()
+    }
+    document.addEventListener('visibilitychange', refetchSiVisible)
+    window.addEventListener('focus', refetchSiVisible)
+    return () => {
+      document.removeEventListener('visibilitychange', refetchSiVisible)
+      window.removeEventListener('focus', refetchSiVisible)
+    }
+  }, [fetchDatos])
 
   if (loading) return <p className="text-gray-200 text-sm">Cargando panel...</p>
   if (!data)   return <p className="text-gray-200 text-sm">No se pudo cargar el panel.</p>
@@ -411,7 +417,6 @@ export default function InicioPage() {
       {sendingNotif && (
         <EnviarWhatsAppModal
           notificacion={sendingNotif}
-          onEnviada={fetchDatos}
           onClose={() => setSendingNotif(null)}
         />
       )}
