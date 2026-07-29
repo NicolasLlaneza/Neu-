@@ -96,6 +96,8 @@ export default function PrivacidadPage() {
               <li><strong>Supabase</strong> (almacenamiento de base de datos, EE.UU./Europa)</li>
               <li><strong>Cloudflare</strong> (hosting del sitio web y protección anti-bot)</li>
               <li><strong>Meta / WhatsApp Business</strong> (envío de notificaciones, solo con consentimiento)</li>
+              <li><strong>GitHub</strong> (resguardo de copias de seguridad en repositorio privado, acceso limitado al personal técnico autorizado)</li>
+              <li><strong>Sentry</strong> (monitoreo de errores técnicos; está configurado para no recibir datos personales)</li>
             </ul>
           </section>
 

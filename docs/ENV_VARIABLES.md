@@ -34,6 +34,14 @@ VITE_FB_APP_ID=
 VITE_FB_CONFIG_ID=
 ```
 
+### Sentry (monitoreo de errores)
+
+```
+# DSN del proyecto en sentry.io → Settings → Client Keys (DSN)
+# Solo se usa en producción; en dev el SDK ni se inicializa.
+VITE_SENTRY_DSN=
+```
+
 ---
 
 ## Backend — Supabase Edge Functions Secrets
@@ -56,6 +64,31 @@ INTERNAL_SECRET=
 # Ubicación: developers.facebook.com → tu App → Settings → Basic → App Secret
 # ⚠️ NUNCA en el frontend — solo backend
 FB_APP_SECRET=
+
+# Secret key de Cloudflare Turnstile (la contraparte del site key)
+# Dev/test: 1x0000000000000000000000000000000AA
+TURNSTILE_SECRET_KEY=
+
+# Orígenes autorizados para CORS, separados por coma.
+# Si no se setea, el default es: https://neumas.pages.dev,http://localhost:5173
+ALLOWED_ORIGINS=
+
+# Hostnames desde los que aceptamos tokens de Turnstile, separados por coma.
+# Si no se setea, el default es: neumas.pages.dev,localhost
+TURNSTILE_ALLOWED_HOSTNAMES=
+```
+
+---
+
+## GitHub Actions Secrets
+
+Se setean en el repo → Settings → Secrets and variables → Actions.
+
+```
+# Connection string de Postgres para el backup semanal.
+# Ubicación: Supabase → Project Settings → Database
+#            → Connection string → URI (incluye la contraseña)
+SUPABASE_DB_URL=
 ```
 
 ---
