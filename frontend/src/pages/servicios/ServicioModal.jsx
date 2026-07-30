@@ -276,7 +276,7 @@ export default function ServicioModal({ servicio, vehiculos, clientes, onSave, o
   const editando = !!servicio
 
   return (
-    <Modal title={editando ? 'Editar servicio' : 'Nuevo servicio'} onClose={onClose}>
+    <Modal title={editando ? 'Editar servicio' : 'Nuevo servicio'} onClose={onClose} size="lg">
       <form onSubmit={handleSubmit} className="space-y-4">
 
         {/* ─── Selector de vehículo ─── */}
@@ -326,7 +326,7 @@ export default function ServicioModal({ servicio, vehiculos, clientes, onSave, o
           </>
         ) : (
           <div className="space-y-3 p-3 border border-dark-400 rounded bg-dark-300/50">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Input
                   label="Patente"
@@ -352,7 +352,7 @@ export default function ServicioModal({ servicio, vehiculos, clientes, onSave, o
                 max={2100}
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input
                 label="Marca"
                 value={nuevoVehiculo.marca}
@@ -408,7 +408,7 @@ export default function ServicioModal({ servicio, vehiculos, clientes, onSave, o
               ) : (
                 <div className="space-y-3">
                   {/* Toggle persona/empresa */}
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => setNC('tipo', 'persona')}
@@ -532,7 +532,7 @@ export default function ServicioModal({ servicio, vehiculos, clientes, onSave, o
           />
         )}
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Input
             label="Fecha"
             type="date"
@@ -553,7 +553,7 @@ export default function ServicioModal({ servicio, vehiculos, clientes, onSave, o
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Input
             label="Producto"
             value={form.producto}
