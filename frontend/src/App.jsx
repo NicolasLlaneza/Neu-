@@ -1,8 +1,9 @@
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
 import ProtectedRoute from '@/routes/ProtectedRoute'
 import AppLayout from '@/layouts/AppLayout'
+import { lazyWithRetry } from '@/lib/lazyWithRetry'
 
 // El login se carga siempre (es la primera pantalla), así que va directo.
 import LoginPage from '@/pages/auth/LoginPage'
@@ -10,20 +11,22 @@ import LoginPage from '@/pages/auth/LoginPage'
 // El resto se parte en chunks: nadie necesita bajar el código de
 // Servicios (que arrastra la librería de compresión de imágenes) solo
 // para entrar al login. Importa sobre todo en los celulares del taller.
-const RecuperarPasswordPage = lazy(() => import('@/pages/auth/RecuperarPasswordPage'))
-const NuevaPasswordPage     = lazy(() => import('@/pages/auth/NuevaPasswordPage'))
-const ConsultaPublicaPage   = lazy(() => import('@/pages/consulta-publica/ConsultaPublicaPage'))
-const ClientesPage          = lazy(() => import('@/pages/clientes/ClientesPage'))
-const VehiculosPage         = lazy(() => import('@/pages/vehiculos/VehiculosPage'))
-const ServiciosPage         = lazy(() => import('@/pages/servicios/ServiciosPage'))
-const NotificacionesPage    = lazy(() => import('@/pages/notificaciones/NotificacionesPage'))
+// lazyWithRetry maneja el "chunk load error" que aparece cuando un
+// usuario tiene la app abierta y nosotros deployamos una versión nueva.
+const RecuperarPasswordPage = lazyWithRetry(() => import('@/pages/auth/RecuperarPasswordPage'))
+const NuevaPasswordPage     = lazyWithRetry(() => import('@/pages/auth/NuevaPasswordPage'))
+const ConsultaPublicaPage   = lazyWithRetry(() => import('@/pages/consulta-publica/ConsultaPublicaPage'))
+const ClientesPage          = lazyWithRetry(() => import('@/pages/clientes/ClientesPage'))
+const VehiculosPage         = lazyWithRetry(() => import('@/pages/vehiculos/VehiculosPage'))
+const ServiciosPage         = lazyWithRetry(() => import('@/pages/servicios/ServiciosPage'))
+const NotificacionesPage    = lazyWithRetry(() => import('@/pages/notificaciones/NotificacionesPage'))
 // ConfigWhatsappPage se deja importable pero sin ruta activa:
 // requiere Embedded Signup aprobado y hoy Meta lo bloquea.
-// const ConfigWhatsappPage = lazy(() => import('@/pages/config/ConfigWhatsappPage'))
-const UsuariosPage          = lazy(() => import('@/pages/config/UsuariosPage'))
-const InicioPage            = lazy(() => import('@/pages/inicio/InicioPage'))
-const PrivacidadPage        = lazy(() => import('@/pages/legal/PrivacidadPage'))
-const TerminosPage          = lazy(() => import('@/pages/legal/TerminosPage'))
+// const ConfigWhatsappPage = lazyWithRetry(() => import('@/pages/config/ConfigWhatsappPage'))
+const UsuariosPage          = lazyWithRetry(() => import('@/pages/config/UsuariosPage'))
+const InicioPage            = lazyWithRetry(() => import('@/pages/inicio/InicioPage'))
+const PrivacidadPage        = lazyWithRetry(() => import('@/pages/legal/PrivacidadPage'))
+const TerminosPage          = lazyWithRetry(() => import('@/pages/legal/TerminosPage'))
 
 function Cargando() {
   return (

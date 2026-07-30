@@ -5,12 +5,13 @@
 // Los 3 flujos con cliente/vehículo nuevo pasan por la RPC
 // crear_servicio_completo (transaccional).
 
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { ArrowLeft, AlertCircle, Plus, Loader2, Lock } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
 import { normalizarPatente, detectarTipoPatente } from '@/lib/patente'
 import { uploadPendingFotos } from '@/lib/fotosServicio'
+import { lazyWithRetry } from '@/lib/lazyWithRetry'
 import { useAuth } from '@/contexts/AuthContext'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
@@ -22,7 +23,9 @@ import SearchSelect from '@/components/SearchSelect'
 // FotoGallery arrastra browser-image-compression (~28 KB gzip). Al
 // hacerlo lazy, esa librería solo se descarga cuando el usuario abre
 // el modal — y no penaliza al que solo entra a listar servicios.
-const FotoGallery = lazy(() => import('@/components/FotoGallery'))
+// lazyWithRetry maneja el "chunk load error" post-deploy (era el que
+// llegaba a Sentry con "Failed to fetch dynamically imported module").
+const FotoGallery = lazyWithRetry(() => import('@/components/FotoGallery'))
 
 function FotoGalleryFallback() {
   return (
