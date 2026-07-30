@@ -8,6 +8,7 @@ export default function Select({ label, error, children, className = '', ...prop
         className={`
           bg-dark-300 border text-gray-100 text-sm rounded px-3 py-2.5
           outline-none transition-colors cursor-pointer
+          disabled:opacity-50 disabled:cursor-not-allowed
           ${error ? 'border-red-bright' : 'border-dark-400 focus:border-red'}
           ${className}
         `}

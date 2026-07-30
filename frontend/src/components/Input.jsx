@@ -15,6 +15,7 @@ export default function Input({
         className={`
           bg-dark-300 border text-gray-100 text-sm rounded px-3 py-2.5
           outline-none transition-colors placeholder:text-gray-300
+          disabled:opacity-50 disabled:cursor-not-allowed
           ${error ? 'border-red-bright' : 'border-dark-400 focus:border-red'}
           ${className}
         `}

@@ -6,11 +6,12 @@
 // crear_servicio_completo (transaccional).
 
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
-import { ArrowLeft, AlertCircle, Plus, Loader2 } from 'lucide-react'
+import { ArrowLeft, AlertCircle, Plus, Loader2, Lock } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
 import { normalizarPatente, detectarTipoPatente } from '@/lib/patente'
 import { uploadPendingFotos } from '@/lib/fotosServicio'
+import { useAuth } from '@/contexts/AuthContext'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
@@ -48,6 +49,13 @@ function hoy() {
 
 // ─── Formulario ────────────────────────────────────────────────────────
 export default function ServicioModal({ servicio, vehiculos, clientes, onSave, onServicioCreated, onClose }) {
+  const { profile } = useAuth()
+  const esSuperadmin = profile?.rol === 'superadmin'
+  // Los campos que son evidencia del trabajo (fecha, kilometraje, importe,
+  // tipo de servicio) quedan inmutables para admins normales una vez
+  // creado el servicio. Solo un superadmin puede corregirlos. Al crear
+  // un servicio nuevo todos los campos están habilitados.
+  const bloqueado = !!servicio && !esSuperadmin
   const [form, setForm] = useState({
     vehiculo_id:   servicio?.vehiculo_id   ?? '',
     cliente_id:    servicio?.cliente_id    ?? '',
@@ -481,12 +489,28 @@ export default function ServicioModal({ servicio, vehiculos, clientes, onSave, o
           </div>
         )}
 
+        {/* Aviso cuando los campos históricos están bloqueados por rol */}
+        {bloqueado && (
+          <div className="flex items-start gap-3 p-3 border border-dark-400 bg-dark-300 rounded">
+            <Lock size={16} className="text-gray-300 shrink-0 mt-0.5" />
+            <div className="text-xs text-gray-200">
+              <p className="text-gray-100 font-semibold mb-0.5">Campos protegidos</p>
+              <p>
+                Tipo de servicio, fecha, kilometraje e importe son evidencia del trabajo
+                y solo pueden editarlos los superadmins. Podés cambiar producto,
+                observaciones y estado de cobro sin restricciones.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* ─── Tipo de servicio ─── */}
         <Select
           label="Tipo de servicio"
           value={tipoSelect}
           onChange={e => handleTipo(e.target.value)}
           error={errors.tipo}
+          disabled={bloqueado}
         >
           <option value="">Seleccioná un servicio</option>
           {TIPOS_SERVICIO.map(t => (
@@ -501,6 +525,7 @@ export default function ServicioModal({ servicio, vehiculos, clientes, onSave, o
             onChange={e => set('tipo_custom', e.target.value)}
             placeholder="Ej: Cambio de pastillas"
             error={errors.tipo}
+            disabled={bloqueado}
           />
         )}
 
@@ -511,6 +536,7 @@ export default function ServicioModal({ servicio, vehiculos, clientes, onSave, o
             value={form.fecha}
             onChange={e => set('fecha', e.target.value)}
             error={errors.fecha}
+            disabled={bloqueado}
           />
           <Input
             label="Kilometraje"
@@ -520,6 +546,7 @@ export default function ServicioModal({ servicio, vehiculos, clientes, onSave, o
             error={errors.km}
             placeholder="0"
             min={0}
+            disabled={bloqueado}
           />
         </div>
 
@@ -538,6 +565,7 @@ export default function ServicioModal({ servicio, vehiculos, clientes, onSave, o
             placeholder="0.00"
             min={0}
             step="0.01"
+            disabled={bloqueado}
           />
         </div>
 
