@@ -7,6 +7,8 @@ import Button from '@/components/Button'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
 import Modal from '@/components/Modal'
+import DataTable from '@/components/DataTable'
+import TableSkeleton from '@/components/TableSkeleton'
 
 const MIN_PASSWORD = 12
 
@@ -306,20 +308,12 @@ export default function UsuariosPage() {
       )}
 
       {loading ? (
-        <p className="text-gray-200 text-sm">Cargando...</p>
+        <TableSkeleton columns={5} minWidth={720} />
       ) : (
-        <div className="bg-dark-200 border border-dark-400 rounded-lg overflow-x-auto">
-          <table className="w-full text-sm min-w-[720px] whitespace-nowrap">
-            <thead>
-              <tr className="border-b border-dark-400">
-                {['Nombre', 'Email', 'Rol', 'Estado', ''].map(col => (
-                  <th key={col} className="text-left px-4 py-3 text-xs uppercase tracking-wider text-gray-200">
-                    {col}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
+        <DataTable
+          columns={['Nombre', 'Email', 'Rol', 'Estado', '']}
+          minWidth={720}
+        >
               {usuarios.map(u => {
                 const esYo = u.id === profile?.id
                 return (
@@ -375,9 +369,7 @@ export default function UsuariosPage() {
                   </tr>
                 )
               })}
-            </tbody>
-          </table>
-        </div>
+        </DataTable>
       )}
 
       <p className="text-gray-300 text-xs mt-4">

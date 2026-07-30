@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Car } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
+import { notificar } from '@/lib/notificar'
 import { normalizarPatente, detectarTipoPatente } from '@/lib/patente'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
 import Modal from '@/components/Modal'
+import DataTable from '@/components/DataTable'
+import EmptyState from '@/components/EmptyState'
+import TableSkeleton from '@/components/TableSkeleton'
 
 const tipoLabels = {
   'auto-viejo': 'Auto',
@@ -186,25 +190,32 @@ export default function VehiculosPage() {
       const { data, error } = await supabase
         .from('vehiculos').update(form).eq('id', editing.id)
         .select('*, clientes(nombre)').single()
-      if (error) { logger.error(error); return }
+      if (error) { notificar.error('No se pudo editar el vehículo', error); return }
       setVehiculos(prev => prev.map(v => v.id === editing.id ? data : v))
+      notificar.exito('Vehículo actualizado')
     } else {
       const { data, error } = await supabase
         .from('vehiculos').insert(form)
         .select('*, clientes(nombre)').single()
-      if (error) { logger.error(error); return }
+      if (error) { notificar.error('No se pudo crear el vehículo', error); return }
       setVehiculos(prev => [data, ...prev])
+      notificar.exito('Vehículo creado')
     }
     setModalOpen(false)
   }
 
   async function handleDelete(id) {
-    await supabase
+    const { error } = await supabase
       .from('vehiculos')
       .update({ activo: false })
       .eq('id', id)
+    if (error) {
+      notificar.error('No se pudo dar de baja', error)
+      return
+    }
     setVehiculos(prev => prev.map(v => v.id === id ? { ...v, activo: false } : v))
     setDeletingId(null)
+    notificar.exito('Vehículo dado de baja')
   }
 
   const inactivos = vehiculos.filter(v => !v.activo).length
@@ -254,22 +265,27 @@ export default function VehiculosPage() {
       </div>
 
       {loading ? (
-        <p className="text-gray-200 text-sm">Cargando...</p>
+        <TableSkeleton columns={7} minWidth={700} />
       ) : filtrados.length === 0 ? (
-        <p className="text-gray-200 text-sm">No hay vehículos registrados.</p>
+        <EmptyState
+          icon={Car}
+          title={search ? 'Sin resultados' : 'No hay vehículos todavía'}
+          message={
+            search
+              ? 'Probá con otra patente, marca o cliente.'
+              : 'Cargá el primer vehículo del taller.'
+          }
+          action={!search && (
+            <Button onClick={openCreate}>
+              <Plus size={15} /> Nuevo vehículo
+            </Button>
+          )}
+        />
       ) : (
-        <div className="bg-dark-200 border border-dark-400 rounded-lg overflow-x-auto">
-          <table className="w-full text-sm min-w-[700px] whitespace-nowrap">
-            <thead>
-              <tr className="border-b border-dark-400">
-                {['Cliente', 'Patente', 'Tipo', 'Marca / Modelo', 'Año', 'KM', ''].map(col => (
-                  <th key={col} className="text-left px-4 py-3 text-xs uppercase tracking-wider text-gray-200">
-                    {col}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
+        <DataTable
+          columns={['Cliente', 'Patente', 'Tipo', 'Marca / Modelo', 'Año', 'KM', '']}
+          minWidth={700}
+        >
               {filtrados.map(v => (
                 <tr key={v.id} className={`border-b border-dark-400 last:border-0 hover:bg-dark-300 transition-colors ${!v.activo ? 'opacity-50' : ''}`}>
                   <td className="px-4 py-3 text-gray-100 font-medium">{v.clientes?.nombre ?? '—'}</td>
@@ -298,9 +314,7 @@ export default function VehiculosPage() {
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
+        </DataTable>
       )}
 
       {modalOpen && (

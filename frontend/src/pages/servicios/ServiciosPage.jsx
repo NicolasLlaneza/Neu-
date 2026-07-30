@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Wrench } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
+import { notificar } from '@/lib/notificar'
 import Button from '@/components/Button'
+import DataTable from '@/components/DataTable'
+import EmptyState from '@/components/EmptyState'
+import TableSkeleton from '@/components/TableSkeleton'
 import ServicioModal from './ServicioModal'
 
 // ─── Página principal ───────────────────────────────────────────────────
@@ -60,17 +64,19 @@ export default function ServiciosPage() {
       const { data, error } = await supabase
         .from('servicios').update(form).eq('id', editing.id)
         .select('*, vehiculos(patente, marca, modelo), clientes(nombre)').single()
-      if (error) { logger.error(error); return null }
+      if (error) { notificar.error('No se pudo editar el servicio', error); return null }
       setServicios(prev => prev.map(s => s.id === editing.id ? data : s))
       setModalOpen(false)
+      notificar.exito('Servicio actualizado')
       return data
     } else {
       const { data, error } = await supabase
         .from('servicios').insert(form)
         .select('*, vehiculos(patente, marca, modelo), clientes(nombre)').single()
-      if (error) { logger.error(error); return null }
+      if (error) { notificar.error('No se pudo crear el servicio', error); return null }
       setServicios(prev => [data, ...prev])
       setModalOpen(false)
+      notificar.exito('Servicio creado')
       return data
     }
   }
@@ -81,12 +87,18 @@ export default function ServiciosPage() {
   async function handleServicioCreated(ids) {
     await Promise.all([fetchServicios(), fetchVehiculos(), fetchClientes()])
     setModalOpen(false)
+    notificar.exito('Servicio creado')
   }
 
   async function handleDelete(id) {
-    await supabase.from('servicios').delete().eq('id', id)
+    const { error } = await supabase.from('servicios').delete().eq('id', id)
+    if (error) {
+      notificar.error('No se pudo eliminar el servicio', error)
+      return
+    }
     setServicios(prev => prev.filter(s => s.id !== id))
     setDeletingId(null)
+    notificar.exito('Servicio eliminado')
   }
 
   const filtrados = servicios.filter(s => {
@@ -120,22 +132,27 @@ export default function ServiciosPage() {
       </div>
 
       {loading ? (
-        <p className="text-gray-200 text-sm">Cargando...</p>
+        <TableSkeleton columns={8} minWidth={700} />
       ) : filtrados.length === 0 ? (
-        <p className="text-gray-200 text-sm">No hay servicios registrados.</p>
+        <EmptyState
+          icon={Wrench}
+          title={search ? 'Sin resultados' : 'No hay servicios todavía'}
+          message={
+            search
+              ? 'Probá con otro cliente, patente o tipo de servicio.'
+              : 'Registrá el primer trabajo realizado.'
+          }
+          action={!search && (
+            <Button onClick={openCreate}>
+              <Plus size={15} /> Nuevo servicio
+            </Button>
+          )}
+        />
       ) : (
-        <div className="bg-dark-200 border border-dark-400 rounded-lg overflow-x-auto">
-          <table className="w-full text-sm min-w-[700px] whitespace-nowrap">
-            <thead>
-              <tr className="border-b border-dark-400">
-                {['Cliente', 'Vehículo', 'Servicio', 'Fecha', 'KM', 'Importe', 'Cobro', ''].map(col => (
-                  <th key={col} className="text-left px-4 py-3 text-xs uppercase tracking-wider text-gray-200">
-                    {col}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
+        <DataTable
+          columns={['Cliente', 'Vehículo', 'Servicio', 'Fecha', 'KM', 'Importe', 'Cobro', '']}
+          minWidth={700}
+        >
               {filtrados.map(s => (
                 <tr key={s.id} className="border-b border-dark-400 last:border-0 hover:bg-dark-300 transition-colors">
                   <td className="px-4 py-3 text-gray-100 font-medium">{s.clientes?.nombre ?? '—'}</td>
@@ -164,9 +181,7 @@ export default function ServiciosPage() {
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
+        </DataTable>
       )}
 
       {modalOpen && (

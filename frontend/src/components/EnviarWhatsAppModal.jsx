@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
 import { abrirWhatsApp } from '@/lib/whatsapp'
 import { emitirNotifActualizada } from '@/lib/eventos'
+import { notificar } from '@/lib/notificar'
 import Modal from '@/components/Modal'
 import Button from '@/components/Button'
 
@@ -61,6 +62,7 @@ export default function EnviarWhatsAppModal({ notificacion, onEnviada, onClose }
       id:     notificacion.id,
       estado: 'enviada',
     })
+    notificar.exito(`Recordatorio enviado a ${nombre}`)
     onEnviada?.()
     onClose()
   }

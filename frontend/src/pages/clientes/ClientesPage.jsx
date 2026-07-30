@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
+import { notificar } from '@/lib/notificar'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
 import Modal from '@/components/Modal'
+import DataTable from '@/components/DataTable'
+import EmptyState from '@/components/EmptyState'
+import TableSkeleton from '@/components/TableSkeleton'
 
 import { estadoCliente as estadoConfig } from '@/lib/badges'
 
@@ -219,24 +223,31 @@ export default function ClientesPage() {
     if (editing) {
       const { data, error } = await supabase
         .from('clientes').update(form).eq('id', editing.id).select().single()
-      if (error) { logger.error('Error al editar:', error); return error }
+      if (error) { notificar.error('No se pudo editar el cliente', error); return error }
       setClientes(prev => prev.map(c => c.id === editing.id ? data : c))
+      notificar.exito('Cliente actualizado')
     } else {
       const { data, error } = await supabase
         .from('clientes').insert(form).select().single()
-      if (error) { logger.error('Error al crear:', error); return error }
+      if (error) { notificar.error('No se pudo crear el cliente', error); return error }
       setClientes(prev => [data, ...prev])
+      notificar.exito('Cliente creado')
     }
     setModalOpen(false)
   }
 
   async function handleDelete(id) {
-    await supabase
+    const { error } = await supabase
       .from('clientes')
       .update({ activo: false, fecha_baja: new Date().toISOString() })
       .eq('id', id)
+    if (error) {
+      notificar.error('No se pudo dar de baja', error)
+      return
+    }
     setClientes(prev => prev.map(c => c.id === id ? { ...c, activo: false } : c))
     setDeletingId(null)
+    notificar.exito('Cliente dado de baja')
   }
 
   const inactivos = clientes.filter(c => !c.activo).length
@@ -323,22 +334,27 @@ export default function ClientesPage() {
 
       {/* Tabla */}
       {loading ? (
-        <p className="text-gray-200 text-sm">Cargando...</p>
+        <TableSkeleton columns={7} minWidth={640} />
       ) : filtrados.length === 0 ? (
-        <p className="text-gray-200 text-sm">No hay clientes registrados.</p>
+        <EmptyState
+          icon={Users}
+          title={search || tipoFiltro !== 'todos' ? 'Sin resultados' : 'No hay clientes todavía'}
+          message={
+            search || tipoFiltro !== 'todos'
+              ? 'Probá con otro término o cambiá el filtro.'
+              : 'Empezá cargando el primer cliente del taller.'
+          }
+          action={!search && tipoFiltro === 'todos' && (
+            <Button onClick={openCreate}>
+              <Plus size={15} /> Nuevo cliente
+            </Button>
+          )}
+        />
       ) : (
-        <div className="bg-dark-200 border border-dark-400 rounded-lg overflow-x-auto">
-          <table className="w-full text-sm min-w-[640px] whitespace-nowrap">
-            <thead>
-              <tr className="border-b border-dark-400">
-                {['Tipo', 'Nombre', 'Teléfono', 'Email', 'Canal', 'Estado', ''].map(col => (
-                  <th key={col} className="text-left px-4 py-3 text-xs uppercase tracking-wider text-gray-200">
-                    {col}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
+        <DataTable
+          columns={['Tipo', 'Nombre', 'Teléfono', 'Email', 'Canal', 'Estado', '']}
+          minWidth={640}
+        >
               {filtrados.map(cliente => (
                 <tr key={cliente.id} className={`border-b border-dark-400 last:border-0 hover:bg-dark-300 transition-colors ${!cliente.activo ? 'opacity-50' : ''}`}>
                   <td className="px-4 py-3">
@@ -399,9 +415,7 @@ export default function ClientesPage() {
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
+        </DataTable>
       )}
 
       {/* Modal */}

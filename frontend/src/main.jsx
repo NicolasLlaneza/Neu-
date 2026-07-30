@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { Toaster } from 'sonner'
 import App from './App.jsx'
 import './styles/index.css'
 import { initSentry, Sentry } from './lib/sentry'
@@ -38,6 +39,22 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
       <App />
+      <Toaster
+        position="bottom-right"
+        theme="dark"
+        richColors
+        closeButton
+        // El toast de notificaciones vencidas ya vive abajo a la derecha
+        // sobre bottom-right (fixed bottom-20 en mobile). Sonner queda
+        // encima gracias al z-index más alto — no compiten visualmente.
+        toastOptions={{
+          style: {
+            background: '#1a1a1a',
+            border: '1px solid #333',
+            color: '#f5f5f5',
+          },
+        }}
+      />
     </Sentry.ErrorBoundary>
   </StrictMode>,
 )

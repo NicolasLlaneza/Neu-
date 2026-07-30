@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Plus, MessageCircle } from 'lucide-react'
+import { Plus, MessageCircle, Bell } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
+import { notificar } from '@/lib/notificar'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
@@ -9,6 +10,9 @@ import Textarea from '@/components/Textarea'
 import Modal from '@/components/Modal'
 import SearchSelect from '@/components/SearchSelect'
 import EnviarWhatsAppModal from '@/components/EnviarWhatsAppModal'
+import DataTable from '@/components/DataTable'
+import EmptyState from '@/components/EmptyState'
+import TableSkeleton from '@/components/TableSkeleton'
 import { EVENTOS, suscribirseA } from '@/lib/eventos'
 
 import { estadoNotificacion as estadoConfig } from '@/lib/badges'
@@ -265,24 +269,31 @@ export default function NotificacionesPage() {
       const { data, error } = await supabase
         .from('notificaciones').update(form).eq('id', editing.id)
         .select('*, clientes(nombre, telefono), servicios(tipo, vehiculos(patente))').single()
-      if (error) { logger.error(error); return }
+      if (error) { notificar.error('No se pudo editar la notificación', error); return }
       setNotificaciones(prev => prev.map(n => n.id === editing.id ? data : n))
+      notificar.exito('Notificación actualizada')
     } else {
       const { data, error } = await supabase
         .from('notificaciones').insert(form)
         .select('*, clientes(nombre, telefono), servicios(tipo, vehiculos(patente))').single()
-      if (error) { logger.error(error); return }
+      if (error) { notificar.error('No se pudo crear la notificación', error); return }
       setNotificaciones(prev =>
         [...prev, data].sort((a, b) => a.fecha_envio.localeCompare(b.fecha_envio))
       )
+      notificar.exito('Notificación programada')
     }
     setModalOpen(false)
   }
 
   async function handleDelete(id) {
-    await supabase.from('notificaciones').update({ estado: 'cancelada' }).eq('id', id)
+    const { error } = await supabase.from('notificaciones').update({ estado: 'cancelada' }).eq('id', id)
+    if (error) {
+      notificar.error('No se pudo cancelar', error)
+      return
+    }
     setNotificaciones(prev => prev.map(n => n.id === id ? { ...n, estado: 'cancelada' } : n))
     setDeletingId(null)
+    notificar.info('Notificación cancelada')
   }
 
   // La query de fetchNotificaciones ya trae clientes(nombre, telefono),
@@ -335,22 +346,27 @@ export default function NotificacionesPage() {
       </div>
 
       {loading ? (
-        <p className="text-gray-200 text-sm">Cargando...</p>
+        <TableSkeleton columns={6} minWidth={700} />
       ) : filtradas.length === 0 ? (
-        <p className="text-gray-200 text-sm">No hay notificaciones registradas.</p>
+        <EmptyState
+          icon={Bell}
+          title={search ? 'Sin resultados' : 'No hay notificaciones todavía'}
+          message={
+            search
+              ? 'Probá con otro cliente o motivo.'
+              : 'Programá el primer recordatorio para un cliente.'
+          }
+          action={!search && (
+            <Button onClick={openCreate}>
+              <Plus size={15} /> Nueva notificación
+            </Button>
+          )}
+        />
       ) : (
-        <div className="bg-dark-200 border border-dark-400 rounded-lg overflow-x-auto">
-          <table className="w-full text-sm min-w-[700px] whitespace-nowrap">
-            <thead>
-              <tr className="border-b border-dark-400">
-                {['Cliente', 'Motivo', 'Fecha envío', 'Hora', 'Estado', ''].map(col => (
-                  <th key={col} className="text-left px-4 py-3 text-xs uppercase tracking-wider text-gray-200">
-                    {col}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
+        <DataTable
+          columns={['Cliente', 'Motivo', 'Fecha envío', 'Hora', 'Estado', '']}
+          minWidth={700}
+        >
               {filtradas.map(n => (
                 <tr key={n.id} className="border-b border-dark-400 last:border-0 hover:bg-dark-300 transition-colors">
                   <td className="px-4 py-3 text-gray-100 font-medium">{n.clientes?.nombre ?? '—'}</td>
@@ -391,9 +407,7 @@ export default function NotificacionesPage() {
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
+        </DataTable>
       )}
 
       {modalOpen && (
