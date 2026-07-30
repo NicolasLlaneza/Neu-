@@ -13,7 +13,7 @@ import EnviarWhatsAppModal from '@/components/EnviarWhatsAppModal'
 import DataTable from '@/components/DataTable'
 import EmptyState from '@/components/EmptyState'
 import TableSkeleton from '@/components/TableSkeleton'
-import { EVENTOS, suscribirseA } from '@/lib/eventos'
+import { EVENTOS, suscribirseA, emitirNotifActualizada } from '@/lib/eventos'
 
 import { estadoNotificacion as estadoConfig } from '@/lib/badges'
 
@@ -271,6 +271,7 @@ export default function NotificacionesPage() {
         .select('*, clientes(nombre, telefono), servicios(tipo, vehiculos(patente))').single()
       if (error) { notificar.error('No se pudo editar la notificación', error); return }
       setNotificaciones(prev => prev.map(n => n.id === editing.id ? data : n))
+      emitirNotifActualizada({ id: data.id, estado: data.estado, tipo: 'update' })
       notificar.exito('Notificación actualizada')
     } else {
       const { data, error } = await supabase
@@ -280,6 +281,7 @@ export default function NotificacionesPage() {
       setNotificaciones(prev =>
         [...prev, data].sort((a, b) => a.fecha_envio.localeCompare(b.fecha_envio))
       )
+      emitirNotifActualizada({ id: data.id, estado: data.estado, tipo: 'create' })
       notificar.exito('Notificación programada')
     }
     setModalOpen(false)
@@ -293,6 +295,7 @@ export default function NotificacionesPage() {
     }
     setNotificaciones(prev => prev.map(n => n.id === id ? { ...n, estado: 'cancelada' } : n))
     setDeletingId(null)
+    emitirNotifActualizada({ id, estado: 'cancelada', tipo: 'update' })
     notificar.info('Notificación cancelada')
   }
 

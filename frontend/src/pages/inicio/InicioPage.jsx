@@ -1,17 +1,17 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   DollarSign, Wrench, UserPlus, Receipt,
   AlertTriangle, BellOff, Clock, TrendingUp,
+  MessageCircle, CalendarClock,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
-import logger from '@/lib/logger'
 import { formatFechaAR, formatFechaHoraAR, estaDentroDeLasProximas } from '@/lib/fecha'
 import { EVENTOS, suscribirseA } from '@/lib/eventos'
+import { useCachedResource } from '@/hooks/useCachedResource'
 import EnviarWhatsAppModal from '@/components/EnviarWhatsAppModal'
 import Button from '@/components/Button'
-import { MessageCircle, CalendarClock } from 'lucide-react'
 
 const MESES_INACTIVIDAD = 6   // umbral para considerar a un cliente "dormido"
 
@@ -38,32 +38,22 @@ function mananaFecha() {
 
 const money = (n) => `$${Number(n ?? 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}`
 
-export default function InicioPage() {
-  const { profile } = useAuth()
-  const [data, setData]       = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [sendingNotif, setSendingNotif] = useState(null)
+// Carga los datos del panel. Se saca del componente para poder pasarla
+// al hook como fetcher puro (sin capturar setState).
+async function cargarPanel(esSuperadmin) {
+  const desdeMes = primerDiaDelMes()
 
-  const esSuperadmin = profile?.rol === 'superadmin'
-
-  // fetchDatos memoizada para poder usarla como dep del useEffect de
-  // visibilitychange sin re-crear listeners en cada render.
-  const fetchDatos = useCallback(async () => {
-    setLoading(true)
-    try {
-      const desdeMes = primerDiaDelMes()
-
-      const [
-        sinCobrar,
-        serviciosMes,
-        clientesMes,
-        notifsFallidas,
-        notifsPendientes,
-        notifsProximas,
-        tiposServicio,
-        actividad,
-        dormidosRes,
-      ] = await Promise.all([
+  const [
+    sinCobrar,
+    serviciosMes,
+    clientesMes,
+    notifsFallidas,
+    notifsPendientes,
+    notifsProximas,
+    tiposServicio,
+    actividad,
+    dormidosRes,
+  ] = await Promise.all([
         // Servicios sin cobrar (con datos de contacto para poder accionar)
         supabase
           .from('servicios')
@@ -122,85 +112,75 @@ export default function InicioPage() {
               .limit(15)
           : Promise.resolve({ data: [] }),
 
-        // Clientes dormidos: RPC agregada en migration 013
-        // (evita traer todos los servicios de todos los clientes).
-        supabase.rpc('clientes_dormidos', { p_meses: MESES_INACTIVIDAD }),
-      ])
+    // Clientes dormidos: RPC agregada en migration 013
+    // (evita traer todos los servicios de todos los clientes).
+    supabase.rpc('clientes_dormidos', { p_meses: MESES_INACTIVIDAD }),
+  ])
 
-      const dormidos = dormidosRes.data ?? []
+  const dormidos = dormidosRes.data ?? []
 
-      // ── Ranking de tipos de servicio ──
-      const conteo = {}
-      for (const s of tiposServicio.data ?? []) {
-        conteo[s.tipo] = (conteo[s.tipo] ?? 0) + 1
-      }
-      const ranking = Object.entries(conteo)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 6)
+  // Ranking de tipos de servicio
+  const conteo = {}
+  for (const s of tiposServicio.data ?? []) {
+    conteo[s.tipo] = (conteo[s.tipo] ?? 0) + 1
+  }
+  const ranking = Object.entries(conteo)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
 
-      const serviciosDelMes = serviciosMes.data ?? []
-      const facturadoMes = serviciosDelMes.reduce((acc, s) => acc + Number(s.importe ?? 0), 0)
-      const conImporte   = serviciosDelMes.filter(s => s.importe != null)
+  const serviciosDelMes = serviciosMes.data ?? []
+  const facturadoMes = serviciosDelMes.reduce((acc, s) => acc + Number(s.importe ?? 0), 0)
+  const conImporte   = serviciosDelMes.filter(s => s.importe != null)
 
-      // Filtrar en cliente por fecha+hora exacta dentro de las próximas 24h.
-      // La query trajo hasta mañana, pero puede incluir notificaciones de
-      // mañana con hora posterior a "ahora + 24hs" — las descartamos.
-      const proximas = (notifsProximas.data ?? []).filter(n =>
-        estaDentroDeLasProximas(n.fecha_envio, n.hora_envio, 24)
-      )
+  // Filtrar en cliente por fecha+hora exacta dentro de las próximas 24h.
+  // La query trajo hasta mañana, pero puede incluir notificaciones de
+  // mañana con hora posterior a "ahora + 24hs" — las descartamos.
+  const proximas = (notifsProximas.data ?? []).filter(n =>
+    estaDentroDeLasProximas(n.fecha_envio, n.hora_envio, 24)
+  )
 
-      setData({
-        sinCobrar:       sinCobrar.data ?? [],
-        totalSinCobrar:  (sinCobrar.data ?? []).reduce((acc, s) => acc + Number(s.importe ?? 0), 0),
-        dormidos,
-        facturadoMes,
-        cantServiciosMes: serviciosDelMes.length,
-        ticketPromedio:  conImporte.length ? facturadoMes / conImporte.length : 0,
-        clientesNuevos:  clientesMes.count ?? 0,
-        notifsFallidas:  notifsFallidas.count ?? 0,
-        notifsPendientes: notifsPendientes.count ?? 0,
-        proximas,
-        ranking,
-        maxRanking:      ranking[0]?.[1] ?? 1,
-        actividad:       actividad.data ?? [],
-      })
-    } catch (err) {
-      logger.error(err)
-    } finally {
-      setLoading(false)
+  return {
+    sinCobrar:       sinCobrar.data ?? [],
+    totalSinCobrar:  (sinCobrar.data ?? []).reduce((acc, s) => acc + Number(s.importe ?? 0), 0),
+    dormidos,
+    facturadoMes,
+    cantServiciosMes: serviciosDelMes.length,
+    ticketPromedio:  conImporte.length ? facturadoMes / conImporte.length : 0,
+    clientesNuevos:  clientesMes.count ?? 0,
+    notifsFallidas:  notifsFallidas.count ?? 0,
+    notifsPendientes: notifsPendientes.count ?? 0,
+    proximas,
+    ranking,
+    maxRanking:      ranking[0]?.[1] ?? 1,
+    actividad:       actividad.data ?? [],
+  }
+}
+
+export default function InicioPage() {
+  const { profile } = useAuth()
+  const esSuperadmin = profile?.rol === 'superadmin'
+  const [sendingNotif, setSendingNotif] = useState(null)
+
+  // Cache SWR: si volvimos a esta página en menos de 30s, muestra datos al
+  // toque y revalida en background. Cualquier mutación relevante invalida
+  // el cache y fuerza refetch.
+  const claveCache = `inicio:panel:${esSuperadmin ? 'super' : 'admin'}`
+  const { data, loading } = useCachedResource(
+    claveCache,
+    () => cargarPanel(esSuperadmin),
+    {
+      invalidaEn: [
+        EVENTOS.servicioActualizado,
+        EVENTOS.clienteActualizado,
+        EVENTOS.notifActualizada,
+        EVENTOS.vehiculoActualizado,
+      ],
     }
-  }, [esSuperadmin])
+  )
 
-  useEffect(() => { fetchDatos() }, [fetchDatos])
-
-  // Al marcar una notif como enviada desde otro componente (toast o
-  // NotificacionesPage), la sacamos del widget de próximas 24hs sin refetch.
-  useEffect(() => {
-    return suscribirseA(EVENTOS.notifActualizada, (e) => {
-      const { id, estado } = e.detail ?? {}
-      if (estado && estado !== 'pendiente') {
-        setData(prev => prev
-          ? { ...prev, proximas: prev.proximas.filter(n => n.id !== id) }
-          : prev
-        )
-      }
-    })
-  }, [])
-
-  // Refresh cuando la pestaña vuelve a estar visible.
-  // Cubre el caso: usuario marca un servicio como cobrado en /servicios,
-  // vuelve a /inicio y esperaría ver el KPI actualizado.
-  useEffect(() => {
-    function refetchSiVisible() {
-      if (document.visibilityState === 'visible') fetchDatos()
-    }
-    document.addEventListener('visibilitychange', refetchSiVisible)
-    window.addEventListener('focus', refetchSiVisible)
-    return () => {
-      document.removeEventListener('visibilitychange', refetchSiVisible)
-      window.removeEventListener('focus', refetchSiVisible)
-    }
-  }, [fetchDatos])
+  // El hook useCachedResource ya maneja visibilitychange internamente
+  // y también escucha los eventos de invalidaEn — no hace falta lógica
+  // manual para refetch ni para sacar notifs del widget.
 
   if (loading) return <p className="text-gray-200 text-sm">Cargando panel...</p>
   if (!data)   return <p className="text-gray-200 text-sm">No se pudo cargar el panel.</p>

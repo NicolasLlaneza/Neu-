@@ -3,6 +3,7 @@ import { Plus, Wrench } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
 import { notificar } from '@/lib/notificar'
+import { emitirServicioActualizado } from '@/lib/eventos'
 import Button from '@/components/Button'
 import DataTable from '@/components/DataTable'
 import EmptyState from '@/components/EmptyState'
@@ -67,6 +68,7 @@ export default function ServiciosPage() {
       if (error) { notificar.error('No se pudo editar el servicio', error); return null }
       setServicios(prev => prev.map(s => s.id === editing.id ? data : s))
       setModalOpen(false)
+      emitirServicioActualizado({ id: data.id, tipo: 'update' })
       notificar.exito('Servicio actualizado')
       return data
     } else {
@@ -76,6 +78,7 @@ export default function ServiciosPage() {
       if (error) { notificar.error('No se pudo crear el servicio', error); return null }
       setServicios(prev => [data, ...prev])
       setModalOpen(false)
+      emitirServicioActualizado({ id: data.id, tipo: 'create' })
       notificar.exito('Servicio creado')
       return data
     }
@@ -87,6 +90,7 @@ export default function ServiciosPage() {
   async function handleServicioCreated(ids) {
     await Promise.all([fetchServicios(), fetchVehiculos(), fetchClientes()])
     setModalOpen(false)
+    emitirServicioActualizado({ id: ids?.servicio_id, tipo: 'create' })
     notificar.exito('Servicio creado')
   }
 
@@ -98,6 +102,7 @@ export default function ServiciosPage() {
     }
     setServicios(prev => prev.filter(s => s.id !== id))
     setDeletingId(null)
+    emitirServicioActualizado({ id, tipo: 'delete' })
     notificar.exito('Servicio eliminado')
   }
 

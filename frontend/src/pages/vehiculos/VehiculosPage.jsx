@@ -3,6 +3,7 @@ import { Plus, Car } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
 import { notificar } from '@/lib/notificar'
+import { emitirVehiculoActualizado } from '@/lib/eventos'
 import { normalizarPatente, detectarTipoPatente } from '@/lib/patente'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
@@ -192,6 +193,7 @@ export default function VehiculosPage() {
         .select('*, clientes(nombre)').single()
       if (error) { notificar.error('No se pudo editar el vehículo', error); return }
       setVehiculos(prev => prev.map(v => v.id === editing.id ? data : v))
+      emitirVehiculoActualizado({ id: data.id, tipo: 'update' })
       notificar.exito('Vehículo actualizado')
     } else {
       const { data, error } = await supabase
@@ -199,6 +201,7 @@ export default function VehiculosPage() {
         .select('*, clientes(nombre)').single()
       if (error) { notificar.error('No se pudo crear el vehículo', error); return }
       setVehiculos(prev => [data, ...prev])
+      emitirVehiculoActualizado({ id: data.id, tipo: 'create' })
       notificar.exito('Vehículo creado')
     }
     setModalOpen(false)
@@ -215,6 +218,7 @@ export default function VehiculosPage() {
     }
     setVehiculos(prev => prev.map(v => v.id === id ? { ...v, activo: false } : v))
     setDeletingId(null)
+    emitirVehiculoActualizado({ id, tipo: 'delete' })
     notificar.exito('Vehículo dado de baja')
   }
 

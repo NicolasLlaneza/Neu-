@@ -3,6 +3,7 @@ import { Plus, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
 import { notificar } from '@/lib/notificar'
+import { emitirClienteActualizado } from '@/lib/eventos'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
@@ -225,12 +226,14 @@ export default function ClientesPage() {
         .from('clientes').update(form).eq('id', editing.id).select().single()
       if (error) { notificar.error('No se pudo editar el cliente', error); return error }
       setClientes(prev => prev.map(c => c.id === editing.id ? data : c))
+      emitirClienteActualizado({ id: data.id, tipo: 'update' })
       notificar.exito('Cliente actualizado')
     } else {
       const { data, error } = await supabase
         .from('clientes').insert(form).select().single()
       if (error) { notificar.error('No se pudo crear el cliente', error); return error }
       setClientes(prev => [data, ...prev])
+      emitirClienteActualizado({ id: data.id, tipo: 'create' })
       notificar.exito('Cliente creado')
     }
     setModalOpen(false)
@@ -247,6 +250,7 @@ export default function ClientesPage() {
     }
     setClientes(prev => prev.map(c => c.id === id ? { ...c, activo: false } : c))
     setDeletingId(null)
+    emitirClienteActualizado({ id, tipo: 'delete' })
     notificar.exito('Cliente dado de baja')
   }
 
