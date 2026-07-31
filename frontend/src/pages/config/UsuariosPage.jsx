@@ -78,9 +78,8 @@ function MiContrasenaSection() {
 
     setGuardando(true)
 
-    // 1) Verificación server-side de la contraseña actual (RPC verificar_password_actual).
-    //    No toca la sesión del cliente — solo hashea la candidata contra el salt
-    //    almacenado y devuelve true/false.
+    // 1) Pre-check con RPC server-side: si la contraseña actual es incorrecta,
+    //    devolvemos error rápido sin invalidar la sesión.
     const { data: passwordOk, error: verifError } = await supabase.rpc(
       'verificar_password_actual',
       { p_password: actual }
@@ -97,7 +96,27 @@ function MiContrasenaSection() {
       return
     }
 
-    // 2) Actualizamos la contraseña usando la sesión existente.
+    // 2) Reautenticación server-side vía signInWithPassword sobre el cliente
+    //    principal. Necesario para que Supabase Auth marque la sesión como
+    //    "recientemente autenticada" (aal1 con timestamp fresco). Sin esto,
+    //    updateUser({password}) devuelve current_password_required cuando el
+    //    proyecto tiene "Secure password change" activo.
+    //
+    //    Es seguro hacerlo ahora porque ya validamos server-side con la RPC
+    //    anterior — signInWithPassword no puede fallar por credenciales
+    //    incorrectas en este punto (solo por red).
+    const { error: reauthError } = await supabase.auth.signInWithPassword({
+      email:    session.user.email,
+      password: actual,
+    })
+    if (reauthError) {
+      setGuardando(false)
+      logger.error(reauthError)
+      setError('No se pudo reautenticar. Refrescá e intentá de nuevo.')
+      return
+    }
+
+    // 3) Actualizamos la contraseña usando la sesión recién refrescada.
     const { error: updateError } = await supabase.auth.updateUser({ password: nueva })
     if (updateError) {
       setGuardando(false)
@@ -106,7 +125,7 @@ function MiContrasenaSection() {
       return
     }
 
-    // 3) Apagamos el flag debe_cambiar_password vía RPC (SECURITY DEFINER,
+    // 4) Apagamos el flag debe_cambiar_password vía RPC (SECURITY DEFINER,
     //    solo puede tocar la propia fila y solo ese campo).
     const { error: rpcError } = await supabase.rpc('marcar_password_cambiada')
     if (rpcError) logger.error(rpcError)  // no bloqueante
