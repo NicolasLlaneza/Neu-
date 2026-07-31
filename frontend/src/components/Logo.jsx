@@ -1,3 +1,13 @@
+// Logo oficial NEU+ Neumáticos.
+// La versión "full" usa el arte con brillos del manual de marca
+// (recortado sin anotaciones desde pagina_02.png → logo.png). Se sirve
+// desde /public para que Vite no lo procese como asset y quede
+// referenciable con path absoluto.
+// La versión "compact" queda como texto para conservar legibilidad en el
+// topbar mobile, respetando la tipografía Montserrat del manual.
+
+const LOGO_URL = '/logo.png'
+
 export default function Logo({ className = '', compact = false }) {
   // Compact: una línea, sin subtítulo, ideal para topbar mobile
   if (compact) {
@@ -12,22 +22,13 @@ export default function Logo({ className = '', compact = false }) {
     )
   }
 
-  // Full: con subtítulo, para login y consulta pública
+  // Full: arte oficial con brillos, para login y consulta pública
   return (
-    <div className={`flex flex-col items-center gap-2 ${className}`}>
-      <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 900, letterSpacing: '0.05em' }}>
-        <span style={{ color: '#cccccc', fontSize: '3.5rem', lineHeight: 1 }}>NEU</span>
-        <span style={{ color: '#910000', fontSize: '3.5rem', lineHeight: 1 }}>+</span>
-      </div>
-      <span style={{
-        fontFamily: 'Montserrat, sans-serif',
-        fontWeight: 500,
-        color: '#666666',
-        fontSize: '0.65rem',
-        letterSpacing: '0.35em',
-      }}>
-        NEUMÁTICOS
-      </span>
-    </div>
+    <img
+      src={LOGO_URL}
+      alt="NEU+ Neumáticos"
+      className={`w-40 sm:w-48 h-auto ${className}`}
+      draggable={false}
+    />
   )
 }
