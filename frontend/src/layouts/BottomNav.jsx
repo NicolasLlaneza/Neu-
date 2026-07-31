@@ -1,12 +1,13 @@
 import { NavLink } from 'react-router-dom'
-import { Users, Car, Wrench, Bell, LayoutDashboard } from 'lucide-react'
+import { Users, Car, Wrench, Bell, LayoutDashboard, UserCog } from 'lucide-react'
 
 const navItems = [
-  { to: '/inicio',         icon: LayoutDashboard, label: 'Inicio'    },
-  { to: '/clientes',       icon: Users,           label: 'Clientes'  },
-  { to: '/vehiculos',      icon: Car,             label: 'Vehículos' },
-  { to: '/servicios',      icon: Wrench,          label: 'Servicios' },
-  { to: '/notificaciones', icon: Bell,            label: 'Notifs.'   },
+  { to: '/inicio',          icon: LayoutDashboard, label: 'Inicio'    },
+  { to: '/clientes',        icon: Users,           label: 'Clientes'  },
+  { to: '/vehiculos',       icon: Car,             label: 'Vehículos' },
+  { to: '/servicios',       icon: Wrench,          label: 'Servicios' },
+  { to: '/notificaciones',  icon: Bell,            label: 'Notifs.'   },
+  { to: '/config/usuarios', icon: UserCog,         label: 'Cuenta'    },
 ]
 
 export default function BottomNav() {
