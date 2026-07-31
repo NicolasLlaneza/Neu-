@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { createClient } from '@supabase/supabase-js'
 import { toast } from 'sonner'
 import { Plus, ShieldCheck, Copy, Check, AlertTriangle, KeyRound } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -13,26 +12,6 @@ import DataTable from '@/components/DataTable'
 import TableSkeleton from '@/components/TableSkeleton'
 
 const MIN_PASSWORD = 12
-
-// Verifica una contraseña sin romper la sesión activa del cliente principal.
-//
-// Usar `supabase.auth.signInWithPassword` sobre el cliente global reautentica
-// exitosamente pero dispara eventos internos (SIGNED_IN, token refresh) que
-// pueden dejar en flight las llamadas siguientes sin apikey — se ve como
-// "No API key found in request" al hacer updateUser o RPC.
-//
-// El truco: cliente descartable con persistSession:false que hace el signIn
-// contra el mismo endpoint pero no toca localStorage ni events del cliente
-// principal.
-async function verificarPasswordActual(email, password) {
-  const tempClient = createClient(
-    import.meta.env.VITE_SUPABASE_URL,
-    import.meta.env.VITE_SUPABASE_ANON_KEY,
-    { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
-  )
-  const { error } = await tempClient.auth.signInWithPassword({ email, password })
-  return !error
-}
 
 // Genera una contraseña temporal legible pero fuerte.
 // Se la dicta el superadmin a la persona en el momento del alta.
@@ -99,10 +78,19 @@ function MiContrasenaSection() {
 
     setGuardando(true)
 
-    // 1) Verificación de la contraseña actual con cliente temporal, para no
-    //    ensuciar la sesión activa del cliente principal (ver comentario en
-    //    verificarPasswordActual).
-    const passwordOk = await verificarPasswordActual(session.user.email, actual)
+    // 1) Verificación server-side de la contraseña actual (RPC verificar_password_actual).
+    //    No toca la sesión del cliente — solo hashea la candidata contra el salt
+    //    almacenado y devuelve true/false.
+    const { data: passwordOk, error: verifError } = await supabase.rpc(
+      'verificar_password_actual',
+      { p_password: actual }
+    )
+    if (verifError) {
+      setGuardando(false)
+      logger.error(verifError)
+      setError('No se pudo verificar la contraseña. Refrescá la página e intentá de nuevo.')
+      return
+    }
     if (!passwordOk) {
       setGuardando(false)
       setError('La contraseña actual no es correcta')
