@@ -12,7 +12,7 @@ import DataTable from '@/components/DataTable'
 import TableSkeleton from '@/components/TableSkeleton'
 import PasswordRequirements, { primerErrorPassword } from '@/components/PasswordRequirements'
 
-const MIN_PASSWORD = 12
+const MIN_PASSWORD = 8
 
 // Genera una contraseña temporal legible pero fuerte.
 // Se la dicta el superadmin a la persona en el momento del alta.
