@@ -377,15 +377,24 @@ function GestionUsuariosSection({ profile }) {
   async function cambiarRol(usuario, nuevoRol) {
     setSavingId(usuario.id)
     setError(null)
-    const { error } = await supabase
+    // .select() al final devuelve las filas efectivamente afectadas: si RLS
+    // filtra silenciosamente el update, data llega como [] y sabemos que
+    // no pasó nada aunque no haya error. Antes actualizábamos el estado
+    // optimista aunque el UPDATE no hubiera tocado ninguna fila.
+    const { data, error } = await supabase
       .from('profiles')
       .update({ rol: nuevoRol })
       .eq('id', usuario.id)
+      .select('id, rol')
     setSavingId(null)
 
     if (error) {
       logger.error(error)
       setError(error.message)
+      return
+    }
+    if (!data || data.length === 0) {
+      setError('No se pudo actualizar el rol (permisos insuficientes o registro inaccesible).')
       return
     }
     setUsuarios(prev => prev.map(u => u.id === usuario.id ? { ...u, rol: nuevoRol } : u))
@@ -398,10 +407,11 @@ function GestionUsuariosSection({ profile }) {
 
     setSavingId(usuario.id)
     setError(null)
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .update({ activo: nuevoEstado })
       .eq('id', usuario.id)
+      .select('id, activo, fecha_baja')
     setSavingId(null)
 
     if (error) {
@@ -409,8 +419,20 @@ function GestionUsuariosSection({ profile }) {
       setError(error.message)
       return
     }
+    if (!data || data.length === 0) {
+      setError(
+        `No se pudo ${accion} el usuario. Puede ser un problema de permisos ` +
+        `o que el registro ya no exista. Refrescá y volvé a intentar.`
+      )
+      // Refetch para volver a alinear la UI con la DB real.
+      fetchUsuarios()
+      return
+    }
+    const filaActualizada = data[0]
     setUsuarios(prev => prev.map(u =>
-      u.id === usuario.id ? { ...u, activo: nuevoEstado } : u
+      u.id === usuario.id
+        ? { ...u, activo: filaActualizada.activo, fecha_baja: filaActualizada.fecha_baja }
+        : u
     ))
   }
 
