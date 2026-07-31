@@ -40,10 +40,18 @@ export function AuthProvider({ children }) {
     setProfile(data)
   }
 
+  // Reejecuta el fetch del perfil sin esperar un evento de auth.
+  // Se usa tras acciones que cambian datos del propio perfil
+  // (cambio de contraseña → apaga debe_cambiar_password) para
+  // que la UI y los guards reflejen el estado nuevo al instante.
+  async function refreshProfile() {
+    if (session?.user?.id) await fetchProfile(session.user.id)
+  }
+
   const loading = session === undefined
 
   return (
-    <AuthContext.Provider value={{ session, profile, loading }}>
+    <AuthContext.Provider value={{ session, profile, loading, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   )

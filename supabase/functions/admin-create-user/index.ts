@@ -62,6 +62,9 @@ serve(async (req: Request) => {
 
   // ── Crear el usuario ──
   // El trigger handle_new_user crea el perfil leyendo user_metadata.
+  // debe_cambiar_password fuerza al dueño de la cuenta a elegir su propia
+  // contraseña en el primer ingreso — la temporal la conoce quien crea el
+  // usuario, así que no puede quedar vigente.
   const { data: created, error: createError } = await supabase.auth.admin.createUser({
     email:         email.trim().toLowerCase(),
     password,
@@ -69,6 +72,7 @@ serve(async (req: Request) => {
     user_metadata: {
       nombre: nombre.trim(),
       rol,
+      debe_cambiar_password: true,
     },
   })
 

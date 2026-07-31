@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Plus, ShieldCheck, Copy, Check, AlertTriangle } from 'lucide-react'
+import { toast } from 'sonner'
+import { Plus, ShieldCheck, Copy, Check, AlertTriangle, KeyRound } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import logger from '@/lib/logger'
@@ -37,6 +38,146 @@ function generarPassword() {
     ;[base[i], base[j]] = [base[j], base[i]]
   }
   return base.join('')
+}
+
+// ─── Sección: cambio de contraseña propia ───────────────────────────────
+// Visible para TODOS los usuarios logueados (admin y superadmin).
+// Cuando debe_cambiar_password=true muestra un banner de advertencia y
+// no se puede navegar a otras rutas hasta cambiarla (guard en ProtectedRoute).
+function MiContrasenaSection() {
+  const { session, profile, refreshProfile } = useAuth()
+
+  const [actual, setActual]     = useState('')
+  const [nueva, setNueva]       = useState('')
+  const [repetir, setRepetir]   = useState('')
+  const [guardando, setGuardando] = useState(false)
+  const [error, setError]       = useState(null)
+
+  const debeCambiar = profile?.debe_cambiar_password === true
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setError(null)
+
+    if (!actual) {
+      setError('Ingresá tu contraseña actual')
+      return
+    }
+    if (nueva.length < MIN_PASSWORD) {
+      setError(`La nueva contraseña debe tener al menos ${MIN_PASSWORD} caracteres`)
+      return
+    }
+    if (nueva !== repetir) {
+      setError('Las contraseñas no coinciden')
+      return
+    }
+    if (nueva === actual) {
+      setError('La nueva contraseña tiene que ser distinta de la actual')
+      return
+    }
+
+    setGuardando(true)
+
+    // 1) Reautenticación: verificamos que quien está sentado adelante es el
+    //    dueño real de la sesión antes de dejarlo cambiar la contraseña.
+    //    signInWithPassword reemplaza el token pero mantiene el mismo user.
+    const { error: reauthError } = await supabase.auth.signInWithPassword({
+      email:    session.user.email,
+      password: actual,
+    })
+    if (reauthError) {
+      setGuardando(false)
+      setError('La contraseña actual no es correcta')
+      return
+    }
+
+    // 2) Actualizamos la contraseña
+    const { error: updateError } = await supabase.auth.updateUser({ password: nueva })
+    if (updateError) {
+      setGuardando(false)
+      logger.error(updateError)
+      setError(updateError.message ?? 'No se pudo actualizar la contraseña')
+      return
+    }
+
+    // 3) Apagamos el flag debe_cambiar_password vía RPC (SECURITY DEFINER,
+    //    solo puede tocar la propia fila y solo ese campo)
+    const { error: rpcError } = await supabase.rpc('marcar_password_cambiada')
+    if (rpcError) logger.error(rpcError)  // no bloqueante
+
+    // 4) Refrescamos el perfil para que se apague el banner + el guard
+    await refreshProfile()
+
+    setGuardando(false)
+    setActual('')
+    setNueva('')
+    setRepetir('')
+    toast.success('Contraseña actualizada')
+  }
+
+  return (
+    <div className="mb-8">
+      <div className="flex items-center gap-2 mb-3">
+        <KeyRound size={16} className="text-gray-300" />
+        <h2 className="text-gray-100 text-sm font-bold uppercase tracking-widest">
+          Mi contraseña
+        </h2>
+      </div>
+
+      {debeCambiar && (
+        <div className="flex items-start gap-3 p-3 mb-4 border border-yellow-500/40 bg-yellow-500/10 rounded">
+          <AlertTriangle size={18} className="text-yellow-500 shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="text-gray-100 font-semibold mb-0.5">
+              Cambio obligatorio de contraseña
+            </p>
+            <p className="text-gray-200 text-xs">
+              Estás usando la contraseña temporal que te asignó el administrador.
+              Elegí una nueva ahora para poder usar el sistema.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <form
+        onSubmit={handleSubmit}
+        className="bg-dark-200 border border-dark-400 rounded-lg p-5 max-w-md space-y-4"
+      >
+        <Input
+          label="Contraseña actual"
+          type="password"
+          value={actual}
+          onChange={e => { setActual(e.target.value); setError(null) }}
+          autoComplete="current-password"
+          required
+        />
+        <Input
+          label={`Nueva contraseña (mínimo ${MIN_PASSWORD} caracteres)`}
+          type="password"
+          value={nueva}
+          onChange={e => { setNueva(e.target.value); setError(null) }}
+          autoComplete="new-password"
+          required
+        />
+        <Input
+          label="Repetir nueva contraseña"
+          type="password"
+          value={repetir}
+          onChange={e => { setRepetir(e.target.value); setError(null) }}
+          autoComplete="new-password"
+          required
+        />
+
+        {error && <p className="text-red-bright text-xs">{error}</p>}
+
+        <div className="pt-1">
+          <Button type="submit" loading={guardando}>
+            Guardar contraseña
+          </Button>
+        </div>
+      </form>
+    </div>
+  )
 }
 
 // ─── Modal de alta ──────────────────────────────────────────────────────
@@ -123,8 +264,9 @@ function NuevoUsuarioModal({ onCreated, onClose }) {
           <div className="flex items-start gap-3 p-3 border border-yellow-500/40 bg-yellow-500/10 rounded">
             <AlertTriangle size={18} className="text-yellow-500 shrink-0 mt-0.5" />
             <p className="text-xs text-gray-200">
-              Esta contraseña no se vuelve a mostrar. Entregásela a la persona ahora
-              y pedile que la cambie en su primer ingreso.
+              Esta contraseña es temporal y no se vuelve a mostrar. Entregásela ahora.
+              En el primer ingreso, la persona va a tener que cambiarla obligatoriamente
+              antes de poder usar el sistema.
             </p>
           </div>
 
@@ -203,18 +345,15 @@ function NuevoUsuarioModal({ onCreated, onClose }) {
   )
 }
 
-// ─── Página ─────────────────────────────────────────────────────────────
-export default function UsuariosPage() {
-  const { profile } = useAuth()
+// ─── Sección: gestión de usuarios (solo superadmin) ────────────────────
+function GestionUsuariosSection({ profile }) {
   const [usuarios, setUsuarios]   = useState([])
   const [loading, setLoading]     = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [savingId, setSavingId]   = useState(null)
   const [error, setError]         = useState(null)
 
-  const esSuperadmin = profile?.rol === 'superadmin'
-
-  useEffect(() => { if (esSuperadmin) fetchUsuarios() }, [esSuperadmin])
+  useEffect(() => { fetchUsuarios() }, [])
 
   async function fetchUsuarios() {
     setLoading(true)
@@ -267,23 +406,7 @@ export default function UsuariosPage() {
     ))
   }
 
-  if (!esSuperadmin) {
-    return (
-      <div className="max-w-2xl">
-        <div className="flex items-start gap-3 p-4 border border-dark-400 bg-dark-200 rounded">
-          <ShieldCheck size={20} className="text-gray-300 shrink-0 mt-0.5" />
-          <div>
-            <h2 className="text-gray-100 text-sm font-semibold mb-1">Acceso restringido</h2>
-            <p className="text-gray-200 text-sm">
-              Solo los superadmins pueden gestionar usuarios.
-            </p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  const activos    = usuarios.filter(u => u.activo).length
+  const activos     = usuarios.filter(u => u.activo).length
   const superadmins = usuarios.filter(u => u.rol === 'superadmin' && u.activo).length
 
   return (
@@ -291,9 +414,9 @@ export default function UsuariosPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div>
-          <h1 className="text-gray-100 text-lg font-bold uppercase tracking-widest mb-1">
-            Usuarios
-          </h1>
+          <h2 className="text-gray-100 text-sm font-bold uppercase tracking-widest mb-1">
+            Gestión de usuarios
+          </h2>
           <p className="text-gray-200 text-sm">
             {loading ? '...' : `${activos} activo${activos !== 1 ? 's' : ''} · ${superadmins} superadmin${superadmins !== 1 ? 's' : ''}`}
           </p>
@@ -314,61 +437,61 @@ export default function UsuariosPage() {
           columns={['Nombre', 'Email', 'Rol', 'Estado', '']}
           minWidth={720}
         >
-              {usuarios.map(u => {
-                const esYo = u.id === profile?.id
-                return (
-                  <tr
-                    key={u.id}
-                    className={`border-b border-dark-400 last:border-0 hover:bg-dark-300 transition-colors ${!u.activo ? 'opacity-50' : ''}`}
+          {usuarios.map(u => {
+            const esYo = u.id === profile?.id
+            return (
+              <tr
+                key={u.id}
+                className={`border-b border-dark-400 last:border-0 hover:bg-dark-300 transition-colors ${!u.activo ? 'opacity-50' : ''}`}
+              >
+                <td className="px-4 py-3 text-gray-100 font-medium">
+                  {u.nombre}
+                  {esYo && (
+                    <span className="ml-2 text-xs text-gray-300 border border-dark-400 px-1.5 py-0.5 rounded font-normal">
+                      Vos
+                    </span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-gray-200 font-mono text-xs">{u.email ?? '—'}</td>
+                <td className="px-4 py-3">
+                  <select
+                    value={u.rol}
+                    disabled={esYo || savingId === u.id}
+                    onChange={e => cambiarRol(u, e.target.value)}
+                    className="bg-dark-300 border border-dark-400 text-gray-100 text-xs rounded px-2 py-1 outline-none focus:border-red transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <td className="px-4 py-3 text-gray-100 font-medium">
-                      {u.nombre}
-                      {esYo && (
-                        <span className="ml-2 text-xs text-gray-300 border border-dark-400 px-1.5 py-0.5 rounded font-normal">
-                          Vos
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-gray-200 font-mono text-xs">{u.email ?? '—'}</td>
-                    <td className="px-4 py-3">
-                      <select
-                        value={u.rol}
-                        disabled={esYo || savingId === u.id}
-                        onChange={e => cambiarRol(u, e.target.value)}
-                        className="bg-dark-300 border border-dark-400 text-gray-100 text-xs rounded px-2 py-1 outline-none focus:border-red transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    <option value="admin">Admin</option>
+                    <option value="superadmin">Superadmin</option>
+                  </select>
+                </td>
+                <td className="px-4 py-3">
+                  {u.activo ? (
+                    <span className="text-xs uppercase tracking-wider px-2 py-0.5 rounded border text-green-500 border-green-500/40 bg-green-500/10">
+                      Activo
+                    </span>
+                  ) : (
+                    <span className="text-xs uppercase tracking-wider px-2 py-0.5 rounded border text-gray-300 border-dark-400 bg-dark-300">
+                      Baja
+                    </span>
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center justify-end gap-2">
+                    {!esYo && (
+                      <Button
+                        size="sm"
+                        variant={u.activo ? 'danger' : 'secondary'}
+                        loading={savingId === u.id}
+                        onClick={() => toggleActivo(u)}
                       >
-                        <option value="admin">Admin</option>
-                        <option value="superadmin">Superadmin</option>
-                      </select>
-                    </td>
-                    <td className="px-4 py-3">
-                      {u.activo ? (
-                        <span className="text-xs uppercase tracking-wider px-2 py-0.5 rounded border text-green-500 border-green-500/40 bg-green-500/10">
-                          Activo
-                        </span>
-                      ) : (
-                        <span className="text-xs uppercase tracking-wider px-2 py-0.5 rounded border text-gray-300 border-dark-400 bg-dark-300">
-                          Baja
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-2">
-                        {!esYo && (
-                          <Button
-                            size="sm"
-                            variant={u.activo ? 'danger' : 'secondary'}
-                            loading={savingId === u.id}
-                            onClick={() => toggleActivo(u)}
-                          >
-                            {u.activo ? 'Dar de baja' : 'Reactivar'}
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
+                        {u.activo ? 'Dar de baja' : 'Reactivar'}
+                      </Button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            )
+          })}
         </DataTable>
       )}
 
@@ -381,6 +504,42 @@ export default function UsuariosPage() {
           onCreated={fetchUsuarios}
           onClose={() => setModalOpen(false)}
         />
+      )}
+    </div>
+  )
+}
+
+// ─── Página ─────────────────────────────────────────────────────────────
+export default function UsuariosPage() {
+  const { profile } = useAuth()
+  const esSuperadmin = profile?.rol === 'superadmin'
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h1 className="text-gray-100 text-lg font-bold uppercase tracking-widest">
+          Usuarios
+        </h1>
+      </div>
+
+      <MiContrasenaSection />
+
+      {esSuperadmin ? (
+        <div className="pt-6 border-t border-dark-400">
+          <GestionUsuariosSection profile={profile} />
+        </div>
+      ) : (
+        <div className="pt-6 border-t border-dark-400">
+          <div className="flex items-start gap-3 p-4 border border-dark-400 bg-dark-200 rounded max-w-2xl">
+            <ShieldCheck size={20} className="text-gray-300 shrink-0 mt-0.5" />
+            <div>
+              <h2 className="text-gray-100 text-sm font-semibold mb-1">Gestión de usuarios</h2>
+              <p className="text-gray-200 text-sm">
+                Solo los superadmins pueden dar de alta o modificar cuentas.
+              </p>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
