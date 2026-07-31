@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { LogOut } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
@@ -35,10 +35,14 @@ export default function Topbar() {
       </h1>
 
       <div className="flex items-center gap-3">
-        {/* Desktop: nombre del perfil */}
-        <span className="hidden md:block text-xs text-gray-200">
+        {/* Desktop: nombre del perfil clickeable → cuenta */}
+        <Link
+          to="/config/usuarios"
+          className="hidden md:block text-xs text-gray-200 hover:text-gray-100 transition-colors"
+          title="Mi cuenta"
+        >
           {profile?.nombre ?? ''}
-        </span>
+        </Link>
         {/* Mobile: ícono de logout */}
         <button
           onClick={handleLogout}
