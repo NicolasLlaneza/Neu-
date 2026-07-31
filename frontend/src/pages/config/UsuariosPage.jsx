@@ -86,10 +86,13 @@ function MiContrasenaSection() {
 
     setGuardando(true)
 
-    const { error: rpcError } = await supabase.rpc('cambiar_mi_password', {
-      p_nueva:  nueva,
-      p_actual: debeCambiar ? null : actual,
-    })
+    // Cuando debeCambiar=true no mandamos p_actual — PostgREST puede rechazar
+    // el matching de la RPC con parámetros null y prefiere ausencia total.
+    const args = debeCambiar
+      ? { p_nueva: nueva }
+      : { p_nueva: nueva, p_actual: actual }
+
+    const { error: rpcError } = await supabase.rpc('cambiar_mi_password', args)
     setGuardando(false)
 
     if (rpcError) {
