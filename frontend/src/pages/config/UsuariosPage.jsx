@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Plus, ShieldCheck, Copy, Check, AlertTriangle, KeyRound } from 'lucide-react'
+import { Plus, Copy, Check, AlertTriangle, KeyRound } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import logger from '@/lib/logger'
@@ -353,13 +353,20 @@ function NuevoUsuarioModal({ onCreated, onClose }) {
   )
 }
 
-// ─── Sección: gestión de usuarios (solo superadmin) ────────────────────
+// ─── Sección: gestión de usuarios ──────────────────────────────────────
+// Todos los usuarios logueados pueden ver la lista (para saber quién es
+// quién en el sistema). Solo los superadmins pueden crear, cambiar rol,
+// dar de baja o reactivar. Los admins comunes ven la tabla en modo
+// solo lectura, sin controles.
 function GestionUsuariosSection({ profile }) {
   const [usuarios, setUsuarios]   = useState([])
   const [loading, setLoading]     = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [savingId, setSavingId]   = useState(null)
   const [error, setError]         = useState(null)
+  const [tab, setTab]             = useState('activos')  // 'activos' | 'inactivos' | 'todos'
+
+  const esSuperadmin = profile?.rol === 'superadmin'
 
   useEffect(() => { fetchUsuarios() }, [])
 
@@ -377,15 +384,24 @@ function GestionUsuariosSection({ profile }) {
   async function cambiarRol(usuario, nuevoRol) {
     setSavingId(usuario.id)
     setError(null)
-    const { error } = await supabase
+    // .select() al final devuelve las filas efectivamente afectadas: si RLS
+    // filtra silenciosamente el update, data llega como [] y sabemos que
+    // no pasó nada aunque no haya error. Antes actualizábamos el estado
+    // optimista aunque el UPDATE no hubiera tocado ninguna fila.
+    const { data, error } = await supabase
       .from('profiles')
       .update({ rol: nuevoRol })
       .eq('id', usuario.id)
+      .select('id, rol')
     setSavingId(null)
 
     if (error) {
       logger.error(error)
       setError(error.message)
+      return
+    }
+    if (!data || data.length === 0) {
+      setError('No se pudo actualizar el rol (permisos insuficientes o registro inaccesible).')
       return
     }
     setUsuarios(prev => prev.map(u => u.id === usuario.id ? { ...u, rol: nuevoRol } : u))
@@ -398,10 +414,11 @@ function GestionUsuariosSection({ profile }) {
 
     setSavingId(usuario.id)
     setError(null)
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .update({ activo: nuevoEstado })
       .eq('id', usuario.id)
+      .select('id, activo, fecha_baja')
     setSavingId(null)
 
     if (error) {
@@ -409,13 +426,38 @@ function GestionUsuariosSection({ profile }) {
       setError(error.message)
       return
     }
+    if (!data || data.length === 0) {
+      setError(
+        `No se pudo ${accion} el usuario. Puede ser un problema de permisos ` +
+        `o que el registro ya no exista. Refrescá y volvé a intentar.`
+      )
+      // Refetch para volver a alinear la UI con la DB real.
+      fetchUsuarios()
+      return
+    }
+    const filaActualizada = data[0]
     setUsuarios(prev => prev.map(u =>
-      u.id === usuario.id ? { ...u, activo: nuevoEstado } : u
+      u.id === usuario.id
+        ? { ...u, activo: filaActualizada.activo, fecha_baja: filaActualizada.fecha_baja }
+        : u
     ))
   }
 
-  const activos     = usuarios.filter(u => u.activo).length
-  const superadmins = usuarios.filter(u => u.rol === 'superadmin' && u.activo).length
+  const totalActivos     = usuarios.filter(u => u.activo).length
+  const totalInactivos   = usuarios.filter(u => !u.activo).length
+  const totalSuperadmins = usuarios.filter(u => u.rol === 'superadmin' && u.activo).length
+
+  const usuariosFiltrados = tab === 'activos'
+    ? usuarios.filter(u => u.activo)
+    : tab === 'inactivos'
+      ? usuarios.filter(u => !u.activo)
+      : usuarios
+
+  const tabs = [
+    { id: 'activos',   label: 'Activos',       count: totalActivos   },
+    { id: 'inactivos', label: 'Dados de baja', count: totalInactivos },
+    { id: 'todos',     label: 'Todos',         count: usuarios.length },
+  ]
 
   return (
     <div>
@@ -426,12 +468,33 @@ function GestionUsuariosSection({ profile }) {
             Gestión de usuarios
           </h2>
           <p className="text-gray-200 text-sm">
-            {loading ? '...' : `${activos} activo${activos !== 1 ? 's' : ''} · ${superadmins} superadmin${superadmins !== 1 ? 's' : ''}`}
+            {loading ? '...' : `${totalActivos} activo${totalActivos !== 1 ? 's' : ''} · ${totalSuperadmins} superadmin${totalSuperadmins !== 1 ? 's' : ''}`}
           </p>
         </div>
-        <Button onClick={() => setModalOpen(true)}>
-          <Plus size={15} /> Nuevo usuario
-        </Button>
+        {esSuperadmin && (
+          <Button onClick={() => setModalOpen(true)}>
+            <Plus size={15} /> Nuevo usuario
+          </Button>
+        )}
+      </div>
+
+      {/* Tabs: Activos / Dados de baja / Todos */}
+      <div className="flex gap-1 mb-4 border-b border-dark-400">
+        {tabs.map(t => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            className={`px-4 py-2 text-xs uppercase tracking-wider font-semibold border-b-2 -mb-px transition-colors ${
+              tab === t.id
+                ? 'text-gray-100 border-red'
+                : 'text-gray-300 border-transparent hover:text-gray-100'
+            }`}
+          >
+            {t.label}
+            <span className="ml-1.5 text-gray-300 font-normal">({t.count})</span>
+          </button>
+        ))}
       </div>
 
       {error && (
@@ -440,17 +503,21 @@ function GestionUsuariosSection({ profile }) {
 
       {loading ? (
         <TableSkeleton columns={5} minWidth={720} />
+      ) : usuariosFiltrados.length === 0 ? (
+        <p className="text-gray-300 text-sm py-6 text-center">
+          {tab === 'inactivos' ? 'No hay usuarios dados de baja.' : 'No hay usuarios para mostrar.'}
+        </p>
       ) : (
         <DataTable
-          columns={['Nombre', 'Email', 'Rol', 'Estado', '']}
-          minWidth={720}
+          columns={esSuperadmin ? ['Nombre', 'Email', 'Rol', 'Estado', ''] : ['Nombre', 'Email', 'Rol', 'Estado']}
+          minWidth={esSuperadmin ? 720 : 560}
         >
-          {usuarios.map(u => {
+          {usuariosFiltrados.map(u => {
             const esYo = u.id === profile?.id
             return (
               <tr
                 key={u.id}
-                className={`border-b border-dark-400 last:border-0 hover:bg-dark-300 transition-colors ${!u.activo ? 'opacity-50' : ''}`}
+                className={`border-b border-dark-400 last:border-0 hover:bg-dark-300 transition-colors ${!u.activo ? 'opacity-60' : ''}`}
               >
                 <td className="px-4 py-3 text-gray-100 font-medium">
                   {u.nombre}
@@ -462,15 +529,21 @@ function GestionUsuariosSection({ profile }) {
                 </td>
                 <td className="px-4 py-3 text-gray-200 font-mono text-xs">{u.email ?? '—'}</td>
                 <td className="px-4 py-3">
-                  <select
-                    value={u.rol}
-                    disabled={esYo || savingId === u.id}
-                    onChange={e => cambiarRol(u, e.target.value)}
-                    className="bg-dark-300 border border-dark-400 text-gray-100 text-xs rounded px-2 py-1 outline-none focus:border-red transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <option value="admin">Admin</option>
-                    <option value="superadmin">Superadmin</option>
-                  </select>
+                  {esSuperadmin ? (
+                    <select
+                      value={u.rol}
+                      disabled={esYo || savingId === u.id}
+                      onChange={e => cambiarRol(u, e.target.value)}
+                      className="bg-dark-300 border border-dark-400 text-gray-100 text-xs rounded px-2 py-1 outline-none focus:border-red transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <option value="admin">Admin</option>
+                      <option value="superadmin">Superadmin</option>
+                    </select>
+                  ) : (
+                    <span className="text-gray-200 text-xs uppercase tracking-wider">
+                      {u.rol}
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   {u.activo ? (
@@ -483,29 +556,33 @@ function GestionUsuariosSection({ profile }) {
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center justify-end gap-2">
-                    {!esYo && (
-                      <Button
-                        size="sm"
-                        variant={u.activo ? 'danger' : 'secondary'}
-                        loading={savingId === u.id}
-                        onClick={() => toggleActivo(u)}
-                      >
-                        {u.activo ? 'Dar de baja' : 'Reactivar'}
-                      </Button>
-                    )}
-                  </div>
-                </td>
+                {esSuperadmin && (
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-2">
+                      {!esYo && (
+                        <Button
+                          size="sm"
+                          variant={u.activo ? 'danger' : 'primary'}
+                          loading={savingId === u.id}
+                          onClick={() => toggleActivo(u)}
+                        >
+                          {u.activo ? 'Dar de baja' : 'Reactivar'}
+                        </Button>
+                      )}
+                    </div>
+                  </td>
+                )}
               </tr>
             )
           })}
         </DataTable>
       )}
 
-      <p className="text-gray-300 text-xs mt-4">
-        No podés cambiar tu propio rol ni darte de baja a vos mismo. Pedíselo a otro superadmin.
-      </p>
+      {esSuperadmin && (
+        <p className="text-gray-300 text-xs mt-4">
+          No podés cambiar tu propio rol ni darte de baja a vos mismo. Pedíselo a otro superadmin.
+        </p>
+      )}
 
       {modalOpen && (
         <NuevoUsuarioModal
@@ -520,7 +597,6 @@ function GestionUsuariosSection({ profile }) {
 // ─── Página ─────────────────────────────────────────────────────────────
 export default function UsuariosPage() {
   const { profile } = useAuth()
-  const esSuperadmin = profile?.rol === 'superadmin'
 
   return (
     <div>
@@ -532,23 +608,11 @@ export default function UsuariosPage() {
 
       <MiContrasenaSection />
 
-      {esSuperadmin ? (
-        <div className="pt-6 border-t border-dark-400">
-          <GestionUsuariosSection profile={profile} />
-        </div>
-      ) : (
-        <div className="pt-6 border-t border-dark-400">
-          <div className="flex items-start gap-3 p-4 border border-dark-400 bg-dark-200 rounded max-w-2xl">
-            <ShieldCheck size={20} className="text-gray-300 shrink-0 mt-0.5" />
-            <div>
-              <h2 className="text-gray-100 text-sm font-semibold mb-1">Gestión de usuarios</h2>
-              <p className="text-gray-200 text-sm">
-                Solo los superadmins pueden dar de alta o modificar cuentas.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* La sección de gestión es visible para todos; internamente decide
+          si el usuario puede accionar (superadmin) o solo ver (admin). */}
+      <div className="pt-6 border-t border-dark-400">
+        <GestionUsuariosSection profile={profile} />
+      </div>
     </div>
   )
 }
