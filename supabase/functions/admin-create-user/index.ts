@@ -16,7 +16,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { jsonResponse, preflight } from '../_shared/cors.ts'
 
 const ROLES_VALIDOS = ['admin', 'superadmin']
-const MIN_PASSWORD  = 12   // debe coincidir con la política de Supabase Auth
+const MIN_PASSWORD  = 8    // debe coincidir con la política de Supabase Auth
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return preflight(req)

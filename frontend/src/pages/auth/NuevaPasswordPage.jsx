@@ -6,7 +6,7 @@ import logger from '@/lib/logger'
 import Logo from '@/components/Logo'
 import Button from '@/components/Button'
 
-const MIN_PASSWORD = 12
+const MIN_PASSWORD = 8
 
 export default function NuevaPasswordPage() {
   const navigate = useNavigate()
