@@ -42,10 +42,18 @@ function generarPassword() {
 
 // ─── Sección: cambio de contraseña propia ───────────────────────────────
 // Visible para TODOS los usuarios logueados (admin y superadmin).
-// Cuando debe_cambiar_password=true muestra un banner de advertencia y
-// no se puede navegar a otras rutas hasta cambiarla (guard en ProtectedRoute).
+//
+// Dos modos según profile.debe_cambiar_password:
+//   • true  → primer ingreso post-alta: no pide la actual (la conoce quien
+//             creó el usuario, no aporta seguridad exigirla). Banner amarillo
+//             y navegación bloqueada al resto por ProtectedRoute.
+//   • false → cambio voluntario: pide y verifica la actual antes de cambiar.
+//
+// Backend: RPC única cambiar_mi_password que hace verificación (si aplica),
+// hasheo con bcrypt y update atómico. Bypassea Auth API por limitaciones
+// de "Secure password change" en configs recientes de Supabase.
 function MiContrasenaSection() {
-  const { session, profile, refreshProfile } = useAuth()
+  const { profile, refreshProfile } = useAuth()
 
   const [actual, setActual]     = useState('')
   const [nueva, setNueva]       = useState('')
@@ -59,7 +67,7 @@ function MiContrasenaSection() {
     e.preventDefault()
     setError(null)
 
-    if (!actual) {
+    if (!debeCambiar && !actual) {
       setError('Ingresá tu contraseña actual')
       return
     }
@@ -71,69 +79,31 @@ function MiContrasenaSection() {
       setError('Las contraseñas no coinciden')
       return
     }
-    if (nueva === actual) {
+    if (!debeCambiar && nueva === actual) {
       setError('La nueva contraseña tiene que ser distinta de la actual')
       return
     }
 
     setGuardando(true)
 
-    // 1) Pre-check con RPC server-side: si la contraseña actual es incorrecta,
-    //    devolvemos error rápido sin invalidar la sesión.
-    const { data: passwordOk, error: verifError } = await supabase.rpc(
-      'verificar_password_actual',
-      { p_password: actual }
-    )
-    if (verifError) {
-      setGuardando(false)
-      logger.error(verifError)
-      setError('No se pudo verificar la contraseña. Refrescá la página e intentá de nuevo.')
-      return
-    }
-    if (!passwordOk) {
-      setGuardando(false)
-      setError('La contraseña actual no es correcta')
-      return
-    }
-
-    // 2) Reautenticación server-side vía signInWithPassword sobre el cliente
-    //    principal. Necesario para que Supabase Auth marque la sesión como
-    //    "recientemente autenticada" (aal1 con timestamp fresco). Sin esto,
-    //    updateUser({password}) devuelve current_password_required cuando el
-    //    proyecto tiene "Secure password change" activo.
-    //
-    //    Es seguro hacerlo ahora porque ya validamos server-side con la RPC
-    //    anterior — signInWithPassword no puede fallar por credenciales
-    //    incorrectas en este punto (solo por red).
-    const { error: reauthError } = await supabase.auth.signInWithPassword({
-      email:    session.user.email,
-      password: actual,
+    const { error: rpcError } = await supabase.rpc('cambiar_mi_password', {
+      p_nueva:  nueva,
+      p_actual: debeCambiar ? null : actual,
     })
-    if (reauthError) {
-      setGuardando(false)
-      logger.error(reauthError)
-      setError('No se pudo reautenticar. Refrescá e intentá de nuevo.')
+    setGuardando(false)
+
+    if (rpcError) {
+      logger.error(rpcError)
+      // Los raise del RPC tienen mensajes en español; los pasamos directos.
+      // Otros errores (red, permisos) caen en fallback genérico.
+      setError(rpcError.message ?? 'No se pudo actualizar la contraseña')
       return
     }
 
-    // 3) Actualizamos la contraseña usando la sesión recién refrescada.
-    const { error: updateError } = await supabase.auth.updateUser({ password: nueva })
-    if (updateError) {
-      setGuardando(false)
-      logger.error(updateError)
-      setError(updateError.message ?? 'No se pudo actualizar la contraseña')
-      return
-    }
-
-    // 4) Apagamos el flag debe_cambiar_password vía RPC (SECURITY DEFINER,
-    //    solo puede tocar la propia fila y solo ese campo).
-    const { error: rpcError } = await supabase.rpc('marcar_password_cambiada')
-    if (rpcError) logger.error(rpcError)  // no bloqueante
-
-    // 4) Refrescamos el perfil para que se apague el banner + el guard.
+    // Refrescamos el perfil: apaga el flag debe_cambiar_password, oculta el
+    // banner y libera el guard de ProtectedRoute.
     await refreshProfile()
 
-    setGuardando(false)
     setActual('')
     setNueva('')
     setRepetir('')
@@ -158,7 +128,7 @@ function MiContrasenaSection() {
             </p>
             <p className="text-gray-200 text-xs">
               Estás usando la contraseña temporal que te asignó el administrador.
-              Elegí una nueva ahora para poder usar el sistema.
+              Elegí una contraseña nueva y personal ahora para poder usar el sistema.
             </p>
           </div>
         </div>
@@ -168,14 +138,16 @@ function MiContrasenaSection() {
         onSubmit={handleSubmit}
         className="bg-dark-200 border border-dark-400 rounded-lg p-5 max-w-md space-y-4"
       >
-        <Input
-          label="Contraseña actual"
-          type="password"
-          value={actual}
-          onChange={e => { setActual(e.target.value); setError(null) }}
-          autoComplete="current-password"
-          required
-        />
+        {!debeCambiar && (
+          <Input
+            label="Contraseña actual"
+            type="password"
+            value={actual}
+            onChange={e => { setActual(e.target.value); setError(null) }}
+            autoComplete="current-password"
+            required
+          />
+        )}
         <Input
           label={`Nueva contraseña (mínimo ${MIN_PASSWORD} caracteres)`}
           type="password"
@@ -183,6 +155,7 @@ function MiContrasenaSection() {
           onChange={e => { setNueva(e.target.value); setError(null) }}
           autoComplete="new-password"
           required
+          autoFocus={debeCambiar}
         />
         <Input
           label="Repetir nueva contraseña"
@@ -197,7 +170,7 @@ function MiContrasenaSection() {
 
         <div className="pt-1">
           <Button type="submit" loading={guardando}>
-            Guardar contraseña
+            {debeCambiar ? 'Elegir contraseña' : 'Guardar contraseña'}
           </Button>
         </div>
       </form>
