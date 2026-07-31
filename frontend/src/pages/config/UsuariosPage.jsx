@@ -10,6 +10,7 @@ import Select from '@/components/Select'
 import Modal from '@/components/Modal'
 import DataTable from '@/components/DataTable'
 import TableSkeleton from '@/components/TableSkeleton'
+import PasswordRequirements, { primerErrorPassword } from '@/components/PasswordRequirements'
 
 const MIN_PASSWORD = 12
 
@@ -71,8 +72,9 @@ function MiContrasenaSection() {
       setError('Ingresá tu contraseña actual')
       return
     }
-    if (nueva.length < MIN_PASSWORD) {
-      setError(`La nueva contraseña debe tener al menos ${MIN_PASSWORD} caracteres`)
+    const errorRequisito = primerErrorPassword(nueva)
+    if (errorRequisito) {
+      setError(`La nueva contraseña no cumple: ${errorRequisito.toLowerCase()}`)
       return
     }
     if (nueva !== repetir) {
@@ -151,15 +153,18 @@ function MiContrasenaSection() {
             required
           />
         )}
-        <Input
-          label={`Nueva contraseña (mínimo ${MIN_PASSWORD} caracteres)`}
-          type="password"
-          value={nueva}
-          onChange={e => { setNueva(e.target.value); setError(null) }}
-          autoComplete="new-password"
-          required
-          autoFocus={debeCambiar}
-        />
+        <div>
+          <Input
+            label="Nueva contraseña"
+            type="password"
+            value={nueva}
+            onChange={e => { setNueva(e.target.value); setError(null) }}
+            autoComplete="new-password"
+            required
+            autoFocus={debeCambiar}
+          />
+          <PasswordRequirements password={nueva} className="mt-2" />
+        </div>
         <Input
           label="Repetir nueva contraseña"
           type="password"
@@ -212,7 +217,8 @@ function NuevoUsuarioModal({ onCreated, onClose }) {
     if (!form.nombre.trim())              errs.nombre   = 'Requerido'
     if (!form.email.trim())               errs.email    = 'Requerido'
     else if (!form.email.includes('@'))   errs.email    = 'Email inválido'
-    if (form.password.length < MIN_PASSWORD) errs.password = `Mínimo ${MIN_PASSWORD} caracteres`
+    const errorPass = primerErrorPassword(form.password)
+    if (errorPass) errs.password = errorPass
     if (Object.keys(errs).length) { setErrors(errs); return }
 
     setSaving(true)
@@ -331,6 +337,7 @@ function NuevoUsuarioModal({ onCreated, onClose }) {
           >
             Generar otra
           </button>
+          <PasswordRequirements password={form.password} className="mt-3" />
         </div>
 
         {errors.submit && (
