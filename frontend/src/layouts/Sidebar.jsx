@@ -2,7 +2,6 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { Users, Car, Wrench, Bell, LogOut, UserCog, LayoutDashboard } from 'lucide-react'
 import Logo from '@/components/Logo'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/contexts/AuthContext'
 
 const navItems = [
   { to: '/inicio',         icon: LayoutDashboard, label: 'Inicio'         },
@@ -15,13 +14,14 @@ const navItems = [
 const settingsItems = [
   // '/config/whatsapp' oculto: sin Embedded Signup aprobado no cumple función.
   // El archivo se mantiene para cuando Meta habilite la verificación.
-  { to: '/config/usuarios', icon: UserCog,  label: 'Usuarios', soloSuperadmin: true },
+  // La página de Usuarios es visible para todos porque contiene el form de
+  // cambio de contraseña propia; el bloque de gestión de usuarios se
+  // renderiza dentro solo si es superadmin.
+  { to: '/config/usuarios', icon: UserCog,  label: 'Usuarios' },
 ]
 
 export default function Sidebar() {
   const navigate = useNavigate()
-  const { profile } = useAuth()
-  const esSuperadmin = profile?.rol === 'superadmin'
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -60,9 +60,7 @@ export default function Sidebar() {
           <p className="px-5 mb-2 text-xs uppercase tracking-widest text-gray-300 font-semibold">
             Configuración
           </p>
-          {settingsItems
-            .filter(item => !item.soloSuperadmin || esSuperadmin)
-            .map(({ to, icon: Icon, label }) => (
+          {settingsItems.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}

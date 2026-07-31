@@ -70,8 +70,14 @@ export default function App() {
               <ProtectedRoute><AppLayout><UsuariosPage /></AppLayout></ProtectedRoute>
             } />
 
-            {/* Raíz → redirige al panel */}
-            <Route path="/" element={<Navigate to="/inicio" replace />} />
+            {/* Raíz → redirige según el host.
+                consulta.grupocalper.com es solo para clientes finales, así que
+                la raíz cae directo en la consulta pública. El resto va al panel. */}
+            <Route path="/" element={
+              typeof window !== 'undefined' && window.location.hostname === 'consulta.grupocalper.com'
+                ? <Navigate to="/consulta" replace />
+                : <Navigate to="/inicio" replace />
+            } />
             {/* Catch-all: cualquier URL no reconocida vuelve a la raíz */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

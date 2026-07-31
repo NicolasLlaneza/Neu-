@@ -3,6 +3,7 @@ import Topbar from './Topbar'
 import BottomNav from './BottomNav'
 import InactivityWarning from '@/components/InactivityWarning'
 import NotifVencidaToast from '@/components/NotifVencidaToast'
+import PasswordChangeReminder from '@/components/PasswordChangeReminder'
 import { useInactivityTimeout } from '@/hooks/useInactivityTimeout'
 import { supabase } from '@/lib/supabase'
 import { useNavigate } from 'react-router-dom'
@@ -33,6 +34,7 @@ export default function AppLayout({ children }) {
       )}
 
       <NotifVencidaToast />
+      <PasswordChangeReminder />
     </div>
   )
 }
