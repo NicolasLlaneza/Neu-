@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createClient } from '@supabase/supabase-js'
 import { toast } from 'sonner'
 import { Plus, ShieldCheck, Copy, Check, AlertTriangle, KeyRound } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -12,6 +13,26 @@ import DataTable from '@/components/DataTable'
 import TableSkeleton from '@/components/TableSkeleton'
 
 const MIN_PASSWORD = 12
+
+// Verifica una contraseña sin romper la sesión activa del cliente principal.
+//
+// Usar `supabase.auth.signInWithPassword` sobre el cliente global reautentica
+// exitosamente pero dispara eventos internos (SIGNED_IN, token refresh) que
+// pueden dejar en flight las llamadas siguientes sin apikey — se ve como
+// "No API key found in request" al hacer updateUser o RPC.
+//
+// El truco: cliente descartable con persistSession:false que hace el signIn
+// contra el mismo endpoint pero no toca localStorage ni events del cliente
+// principal.
+async function verificarPasswordActual(email, password) {
+  const tempClient = createClient(
+    import.meta.env.VITE_SUPABASE_URL,
+    import.meta.env.VITE_SUPABASE_ANON_KEY,
+    { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
+  )
+  const { error } = await tempClient.auth.signInWithPassword({ email, password })
+  return !error
+}
 
 // Genera una contraseña temporal legible pero fuerte.
 // Se la dicta el superadmin a la persona en el momento del alta.
@@ -78,20 +99,17 @@ function MiContrasenaSection() {
 
     setGuardando(true)
 
-    // 1) Reautenticación: verificamos que quien está sentado adelante es el
-    //    dueño real de la sesión antes de dejarlo cambiar la contraseña.
-    //    signInWithPassword reemplaza el token pero mantiene el mismo user.
-    const { error: reauthError } = await supabase.auth.signInWithPassword({
-      email:    session.user.email,
-      password: actual,
-    })
-    if (reauthError) {
+    // 1) Verificación de la contraseña actual con cliente temporal, para no
+    //    ensuciar la sesión activa del cliente principal (ver comentario en
+    //    verificarPasswordActual).
+    const passwordOk = await verificarPasswordActual(session.user.email, actual)
+    if (!passwordOk) {
       setGuardando(false)
       setError('La contraseña actual no es correcta')
       return
     }
 
-    // 2) Actualizamos la contraseña
+    // 2) Actualizamos la contraseña usando la sesión existente.
     const { error: updateError } = await supabase.auth.updateUser({ password: nueva })
     if (updateError) {
       setGuardando(false)
@@ -101,11 +119,11 @@ function MiContrasenaSection() {
     }
 
     // 3) Apagamos el flag debe_cambiar_password vía RPC (SECURITY DEFINER,
-    //    solo puede tocar la propia fila y solo ese campo)
+    //    solo puede tocar la propia fila y solo ese campo).
     const { error: rpcError } = await supabase.rpc('marcar_password_cambiada')
     if (rpcError) logger.error(rpcError)  // no bloqueante
 
-    // 4) Refrescamos el perfil para que se apague el banner + el guard
+    // 4) Refrescamos el perfil para que se apague el banner + el guard.
     await refreshProfile()
 
     setGuardando(false)
