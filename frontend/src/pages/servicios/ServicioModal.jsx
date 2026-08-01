@@ -39,17 +39,18 @@ function FotoGalleryFallback() {
 }
 
 const TIPOS_SERVICIO = [
-  'Servicio de Mecánica General',
   'Alineación',
-  'Balanceo',
   'Alineación y Balanceo',
-  'Reparación de pinchadura',
-  'Reparación de Tren Delantero',
+  'Balanceo',
   'Cambio de filtros y aceite',
   'Equipamiento',
-  'Servicio de Gomería',
+  'Servicio de Mecánica General',
+  'Rotación de Neumáticos',
+  'Reparación Tren Delantero',
+  'Reparación de pinchadura',
   'Otro',
 ]
+
 
 function hoy() {
   return new Date().toISOString().split('T')[0]
