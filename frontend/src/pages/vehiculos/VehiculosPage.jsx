@@ -5,6 +5,7 @@ import logger from '@/lib/logger'
 import { notificar } from '@/lib/notificar'
 import { emitirVehiculoActualizado } from '@/lib/eventos'
 import { normalizarPatente, detectarTipoPatente } from '@/lib/patente'
+import { normalizarNombre } from '@/lib/texto'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
@@ -60,10 +61,13 @@ function VehiculoModal({ vehiculo, clientes, onSave, onClose }) {
     const errs = validate()
     if (Object.keys(errs).length) { setErrors(errs); return }
     setSaving(true)
+    // Normalizamos marca y modelo a Title Case para uniformar cargas.
     await onSave({
       ...form,
-      anio: form.anio ? parseInt(form.anio) : null,
-      km:   parseInt(form.km) || 0,
+      marca:  normalizarNombre(form.marca),
+      modelo: normalizarNombre(form.modelo),
+      anio:   form.anio ? parseInt(form.anio) : null,
+      km:     parseInt(form.km) || 0,
     })
     setSaving(false)
   }

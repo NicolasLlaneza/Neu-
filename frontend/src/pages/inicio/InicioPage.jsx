@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { formatFechaAR, formatFechaHoraAR, estaDentroDeLasProximas } from '@/lib/fecha'
 import { EVENTOS, suscribirseA } from '@/lib/eventos'
 import { useCachedResource } from '@/hooks/useCachedResource'
+import logger from '@/lib/logger'
 import EnviarWhatsAppModal from '@/components/EnviarWhatsAppModal'
 import Button from '@/components/Button'
 
@@ -42,6 +43,9 @@ const money = (n) => `$${Number(n ?? 0).toLocaleString('es-AR', { maximumFractio
 // al hook como fetcher puro (sin capturar setState).
 async function cargarPanel(esSuperadmin) {
   const desdeMes = primerDiaDelMes()
+
+  // TEMP: logs de diagnóstico para bug de KPIs en $0. Remover cuando esté resuelto.
+  console.log('[InicioPage] cargarPanel — desdeMes:', desdeMes, 'hace(6):', hace(6), 'mananaFecha:', mananaFecha())
 
   const [
     sinCobrar,
@@ -116,6 +120,15 @@ async function cargarPanel(esSuperadmin) {
     // (evita traer todos los servicios de todos los clientes).
     supabase.rpc('clientes_dormidos', { p_meses: MESES_INACTIVIDAD }),
   ])
+
+  // Log de errores silenciosos: si alguna query falla, supabase-js devuelve
+  // { data: null, error: ... } sin throw. Sin este log, los KPIs quedan en 0
+  // sin explicación visible en runtime.
+  const respuestas = { sinCobrar, serviciosMes, clientesMes, notifsFallidas, notifsPendientes, notifsProximas, tiposServicio, actividad, dormidosRes }
+  for (const [nombre, res] of Object.entries(respuestas)) {
+    if (res?.error) console.error(`[InicioPage] query "${nombre}" falló:`, res.error)
+  }
+  console.log('[InicioPage] serviciosMes.data:', serviciosMes.data, 'tiposServicio.data:', tiposServicio.data)
 
   const dormidos = dormidosRes.data ?? []
 

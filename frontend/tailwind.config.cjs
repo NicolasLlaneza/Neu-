@@ -20,10 +20,10 @@ module.exports = {
           400: '#2a2a2a',
         },
         gray: {
-          100: '#cccccc',
-          200: '#888888',
-          300: '#555555',
-          400: '#333333',
+          100: '#f5f5f5',   // texto principal (blanco suave, cómodo en OLED)
+          200: '#b8b8b8',   // texto secundario, labels
+          300: '#7a7a7a',   // placeholders, hints, texto terciario
+          400: '#3a3a3a',   // bordes y separadores
         },
       },
       fontFamily: {

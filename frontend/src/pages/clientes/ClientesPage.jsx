@@ -4,6 +4,8 @@ import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
 import { notificar } from '@/lib/notificar'
 import { emitirClienteActualizado } from '@/lib/eventos'
+import { normalizarNombre, normalizarEmail } from '@/lib/texto'
+import { normalizarTelefonoAR } from '@/lib/telefono'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
@@ -71,11 +73,17 @@ function ClienteModal({ cliente, onSave, onClose }) {
     const errs = validate()
     if (Object.keys(errs).length) { setErrors(errs); return }
     setSaving(true)
+    // Normalizamos al guardar para uniformar mayúsculas/minúsculas y prefijos
+    // de teléfono. Los usuarios pueden cargar como quieran.
     await onSave({
       ...form,
-      email:           form.email.trim()           || null,
-      documento:       form.documento.trim()       || null,
-      contacto_nombre: esEmpresa ? (form.contacto_nombre.trim() || null) : null,
+      nombre:          normalizarNombre(form.nombre),
+      telefono:        normalizarTelefonoAR(form.telefono),
+      email:           form.email.trim() ? normalizarEmail(form.email) : null,
+      documento:       form.documento.trim() || null,
+      contacto_nombre: esEmpresa && form.contacto_nombre.trim()
+        ? normalizarNombre(form.contacto_nombre)
+        : null,
       acepta_whatsapp: !!form.acepta_whatsapp,
     })
     setSaving(false)

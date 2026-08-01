@@ -10,6 +10,8 @@ import { ArrowLeft, AlertCircle, Plus, Loader2, Lock } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
 import { normalizarPatente, detectarTipoPatente } from '@/lib/patente'
+import { normalizarTelefonoAR } from '@/lib/telefono'
+import { normalizarNombre, normalizarEmail } from '@/lib/texto'
 import { uploadPendingFotos } from '@/lib/fotosServicio'
 import { lazyWithRetry } from '@/lib/lazyWithRetry'
 import { useAuth } from '@/contexts/AuthContext'
@@ -141,14 +143,18 @@ export default function ServicioModal({ servicio, vehiculos, clientes, onSave, o
     if (value !== 'Otro') set('tipo_custom', '')
   }
 
-  // Chequeo de duplicado por teléfono (debounced)
+  // Chequeo de duplicado por teléfono (debounced).
+  // Se compara el teléfono normalizado (549...) porque así se guardan los
+  // clientes existentes — si comparáramos crudo, un usuario escribiendo
+  // "261 234 5678" no matchearía al mismo cliente guardado como
+  // "5492612345678".
   const checkDuplicado = useCallback(async (telefono) => {
-    const tel = telefono.trim()
-    if (!tel) { setClienteDuplicado(null); return }
+    const telNormalizado = normalizarTelefonoAR(telefono)
+    if (!telNormalizado || telNormalizado.length < 10) { setClienteDuplicado(null); return }
     const { data } = await supabase
       .from('clientes')
       .select('id, nombre, tipo')
-      .eq('telefono', tel)
+      .eq('telefono', telNormalizado)
       .eq('activo', true)
       .maybeSingle()
     setClienteDuplicado(data ?? null)
@@ -221,21 +227,26 @@ export default function ServicioModal({ servicio, vehiculos, clientes, onSave, o
       } else if (esModoNuevo) {
         // Creación con posiblemente cliente y/o vehículo nuevos.
         // Se ejecuta en UNA transacción SQL: si algún paso falla, rollback.
+        // Normalización al guardar: nombres a Title Case, email a minúsculas,
+        // teléfono a formato E.164 argentino (549...). Uniforma la carga
+        // aunque distintos operadores escriban de maneras distintas.
         const clientePayload = modoCliente === 'nuevo' ? {
           tipo:            nuevoCliente.tipo,
-          nombre:          nuevoCliente.nombre.trim(),
-          telefono:        nuevoCliente.telefono.trim(),
-          email:           nuevoCliente.email.trim() || null,
+          nombre:          normalizarNombre(nuevoCliente.nombre),
+          telefono:        normalizarTelefonoAR(nuevoCliente.telefono),
+          email:           nuevoCliente.email.trim() ? normalizarEmail(nuevoCliente.email) : null,
           documento:       nuevoCliente.documento.trim() || null,
-          contacto_nombre: esEmpresa ? (nuevoCliente.contacto_nombre.trim() || null) : null,
+          contacto_nombre: esEmpresa && nuevoCliente.contacto_nombre.trim()
+            ? normalizarNombre(nuevoCliente.contacto_nombre)
+            : null,
           acepta_whatsapp: !!nuevoCliente.acepta_whatsapp,
         } : null
 
         const vehiculoPayload = {
           patente:      nuevoVehiculo.patente,
           tipo_patente: nuevoVehiculo.tipo_patente,
-          marca:        nuevoVehiculo.marca.trim(),
-          modelo:       nuevoVehiculo.modelo.trim(),
+          marca:        normalizarNombre(nuevoVehiculo.marca),
+          modelo:       normalizarNombre(nuevoVehiculo.modelo),
           anio:         nuevoVehiculo.anio || null,
           km:           form.km || 0,
         }
