@@ -240,18 +240,42 @@ export default function ClientesPage() {
   }
 
   async function handleDelete(id) {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('clientes')
       .update({ activo: false, fecha_baja: new Date().toISOString() })
       .eq('id', id)
+      .select('id, activo, fecha_baja')
     if (error) {
       notificar.error('No se pudo dar de baja', error)
       return
     }
-    setClientes(prev => prev.map(c => c.id === id ? { ...c, activo: false } : c))
+    if (!data || data.length === 0) {
+      notificar.error('No se pudo dar de baja el cliente. Refrescá y volvé a intentar.')
+      return
+    }
+    setClientes(prev => prev.map(c => c.id === id ? { ...c, activo: false, fecha_baja: data[0].fecha_baja } : c))
     setDeletingId(null)
     emitirClienteActualizado({ id, tipo: 'delete' })
     notificar.exito('Cliente dado de baja')
+  }
+
+  async function handleReactivate(id) {
+    const { data, error } = await supabase
+      .from('clientes')
+      .update({ activo: true, fecha_baja: null })
+      .eq('id', id)
+      .select('id, activo, fecha_baja')
+    if (error) {
+      notificar.error('No se pudo reactivar', error)
+      return
+    }
+    if (!data || data.length === 0) {
+      notificar.error('No se pudo reactivar el cliente. Refrescá y volvé a intentar.')
+      return
+    }
+    setClientes(prev => prev.map(c => c.id === id ? { ...c, activo: true, fecha_baja: null } : c))
+    emitirClienteActualizado({ id, tipo: 'update' })
+    notificar.exito('Cliente reactivado')
   }
 
   const inactivos = clientes.filter(c => !c.activo).length
@@ -396,7 +420,12 @@ export default function ClientesPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
-                      {deletingId === cliente.id ? (
+                      {!cliente.activo ? (
+                        // Cliente dado de baja: solo botón reactivar
+                        <Button size="sm" variant="primary" onClick={() => handleReactivate(cliente.id)}>
+                          Reactivar
+                        </Button>
+                      ) : deletingId === cliente.id ? (
                         <>
                           <Button size="sm" variant="danger" onClick={() => handleDelete(cliente.id)}>
                             Confirmar baja
