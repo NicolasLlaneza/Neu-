@@ -208,18 +208,42 @@ export default function VehiculosPage() {
   }
 
   async function handleDelete(id) {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('vehiculos')
       .update({ activo: false })
       .eq('id', id)
+      .select('id, activo')
     if (error) {
       notificar.error('No se pudo dar de baja', error)
+      return
+    }
+    if (!data || data.length === 0) {
+      notificar.error('No se pudo dar de baja el vehículo. Refrescá y volvé a intentar.')
       return
     }
     setVehiculos(prev => prev.map(v => v.id === id ? { ...v, activo: false } : v))
     setDeletingId(null)
     emitirVehiculoActualizado({ id, tipo: 'delete' })
     notificar.exito('Vehículo dado de baja')
+  }
+
+  async function handleReactivate(id) {
+    const { data, error } = await supabase
+      .from('vehiculos')
+      .update({ activo: true })
+      .eq('id', id)
+      .select('id, activo')
+    if (error) {
+      notificar.error('No se pudo reactivar', error)
+      return
+    }
+    if (!data || data.length === 0) {
+      notificar.error('No se pudo reactivar el vehículo. Refrescá y volvé a intentar.')
+      return
+    }
+    setVehiculos(prev => prev.map(v => v.id === id ? { ...v, activo: true } : v))
+    emitirVehiculoActualizado({ id, tipo: 'update' })
+    notificar.exito('Vehículo reactivado')
   }
 
   const inactivos = vehiculos.filter(v => !v.activo).length
@@ -303,7 +327,12 @@ export default function VehiculosPage() {
                   <td className="px-4 py-3 text-gray-200">{v.km?.toLocaleString('es-AR')} km</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
-                      {deletingId === v.id ? (
+                      {!v.activo ? (
+                        // Vehículo dado de baja: solo botón reactivar
+                        <Button size="sm" variant="primary" onClick={() => handleReactivate(v.id)}>
+                          Reactivar
+                        </Button>
+                      ) : deletingId === v.id ? (
                         <>
                           <Button size="sm" variant="danger" onClick={() => handleDelete(v.id)}>Confirmar baja</Button>
                           <Button size="sm" variant="ghost" onClick={() => setDeletingId(null)}>Cancelar</Button>
@@ -311,7 +340,7 @@ export default function VehiculosPage() {
                       ) : (
                         <>
                           <Button size="sm" variant="secondary" onClick={() => openEdit(v)}>Editar</Button>
-                          {v.activo && <Button size="sm" variant="danger" onClick={() => setDeletingId(v.id)}>Dar de baja</Button>}
+                          <Button size="sm" variant="danger" onClick={() => setDeletingId(v.id)}>Dar de baja</Button>
                         </>
                       )}
                     </div>
