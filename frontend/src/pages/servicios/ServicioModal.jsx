@@ -39,12 +39,15 @@ function FotoGalleryFallback() {
 }
 
 const TIPOS_SERVICIO = [
-  'Cambio de neumáticos',
-  'Balanceo',
+  'Servicio de Mecánica General',
   'Alineación',
-  'Rotación de neumáticos',
-  'Reparación de pinchazo',
-  'Revisión de presión',
+  'Balanceo',
+  'Alineación y Balanceo',
+  'Reparación de pinchadura',
+  'Reparación de Tren Delantero',
+  'Cambio de filtros y aceite',
+  'Equipamiento',
+  'Servicio de Gomería',
   'Otro',
 ]
 
