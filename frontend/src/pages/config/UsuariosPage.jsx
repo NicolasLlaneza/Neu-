@@ -11,6 +11,7 @@ import Modal from '@/components/Modal'
 import DataTable from '@/components/DataTable'
 import TableSkeleton from '@/components/TableSkeleton'
 import PasswordRequirements, { primerErrorPassword } from '@/components/PasswordRequirements'
+import { normalizarNombre, normalizarEmail } from '@/lib/texto'
 
 const MIN_PASSWORD = 8
 
@@ -222,11 +223,13 @@ function NuevoUsuarioModal({ onCreated, onClose }) {
     if (Object.keys(errs).length) { setErrors(errs); return }
 
     setSaving(true)
+    // Normalizamos nombre a Title Case y email a minúsculas para
+    // uniformar altas realizadas por distintos superadmins.
     const { data, error } = await supabase.functions.invoke('admin-create-user', {
       body: {
-        email:    form.email.trim(),
+        email:    normalizarEmail(form.email),
         password: form.password,
-        nombre:   form.nombre.trim(),
+        nombre:   normalizarNombre(form.nombre),
         rol:      form.rol,
       },
     })

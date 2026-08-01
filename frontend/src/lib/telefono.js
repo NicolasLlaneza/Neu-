@@ -4,10 +4,44 @@
  * Normaliza un teléfono al formato internacional sin '+' ni separadores.
  * Ej: "+54 9 261 234 5678" → "5492612345678"
  *     "0261 234-5678"       → "2612345678"  (sin código de país)
+ *
+ * Solo quita separadores. Para forzar el prefijo argentino "549" usar
+ * normalizarTelefonoAR en su lugar.
  */
 export function normalizarTelefono(telefono) {
   if (typeof telefono !== 'string') return ''
   return telefono.replace(/\D/g, '')
+}
+
+/**
+ * Normaliza un teléfono argentino a formato E.164 sin '+', garantizando
+ * el prefijo "549" (código país 54 + móvil 9). Es el formato que espera
+ * WhatsApp Business API.
+ *
+ * Acepta cualquier variante razonable de entrada:
+ *   "2612345678"           → "5492612345678"  (agrega 549)
+ *   "0261 234-5678"        → "5492612345678"  (saca 0 inicial, agrega 549)
+ *   "+54 261 234 5678"     → "5492612345678"  (agrega 9 móvil)
+ *   "+54 9 261 234 5678"   → "5492612345678"  (ya venía completo)
+ *   "5492612345678"        → "5492612345678"  (idempotente)
+ *
+ * Si el input es muy corto o vacío, devuelve el string original de dígitos
+ * (la validación posterior con esTelefonoArgentinoValido lo rechaza).
+ */
+export function normalizarTelefonoAR(telefono) {
+  const num = normalizarTelefono(telefono)
+  if (!num) return ''
+
+  // Aislar el "número local" desarmando prefijos comunes
+  let local = num
+  if (local.startsWith('0')) local = local.slice(1)  // 0261... → 261...
+  if (local.startsWith('54')) local = local.slice(2) // 54... → resto
+  if (local.startsWith('9')) local = local.slice(1)  // 9... → resto (móvil)
+
+  // Números demasiado cortos: devolver lo que tenga, la validación luego lo rechazará
+  if (local.length < 6) return num
+
+  return '549' + local
 }
 
 /**
