@@ -314,44 +314,109 @@ export default function VehiculosPage() {
           )}
         />
       ) : (
-        <DataTable
-          columns={['Cliente', 'Patente', 'Tipo', 'Marca / Modelo', 'Año', 'KM', '']}
-          minWidth={700}
-        >
-              {filtrados.map(v => (
-                <tr key={v.id} className={`border-b border-dark-400 last:border-0 hover:bg-dark-300 transition-colors ${!v.activo ? 'opacity-50' : ''}`}>
-                  <td className="px-4 py-3 text-gray-100 font-medium">{v.clientes?.nombre ?? '—'}</td>
-                  <td className="px-4 py-3 text-gray-100 font-mono tracking-wider">
-                    {v.patente}
-                    {!v.activo && <span className="ml-2 text-xs text-gray-300 border border-dark-400 px-1.5 py-0.5 rounded font-sans">Baja</span>}
-                  </td>
-                  <td className="px-4 py-3 text-gray-200">{tipoLabels[v.tipo_patente] ?? v.tipo_patente}</td>
-                  <td className="px-4 py-3 text-gray-200">{v.marca} {v.modelo}</td>
-                  <td className="px-4 py-3 text-gray-200">{v.anio ?? '—'}</td>
-                  <td className="px-4 py-3 text-gray-200">{v.km?.toLocaleString('es-AR')} km</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-2">
-                      {!v.activo ? (
-                        // Vehículo dado de baja: solo botón reactivar
-                        <Button size="sm" variant="primary" onClick={() => handleReactivate(v.id)}>
-                          Reactivar
-                        </Button>
-                      ) : deletingId === v.id ? (
-                        <>
-                          <Button size="sm" variant="danger" onClick={() => handleDelete(v.id)}>Confirmar baja</Button>
-                          <Button size="sm" variant="ghost" onClick={() => setDeletingId(null)}>Cancelar</Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button size="sm" variant="secondary" onClick={() => openEdit(v)}>Editar</Button>
-                          <Button size="sm" variant="danger" onClick={() => setDeletingId(v.id)}>Dar de baja</Button>
-                        </>
+        <>
+          {/* Desktop: tabla completa */}
+          <div className="hidden md:block">
+            <DataTable
+              columns={['Cliente', 'Patente', 'Tipo', 'Marca / Modelo', 'Año', 'KM', '']}
+              minWidth={700}
+            >
+                  {filtrados.map(v => (
+                    <tr key={v.id} className={`border-b border-dark-400 last:border-0 hover:bg-dark-300 transition-colors ${!v.activo ? 'opacity-50' : ''}`}>
+                      <td className="px-4 py-3 text-gray-100 font-medium">{v.clientes?.nombre ?? '—'}</td>
+                      <td className="px-4 py-3 text-gray-100 font-mono tracking-wider">
+                        {v.patente}
+                        {!v.activo && <span className="ml-2 text-xs text-gray-300 border border-dark-400 px-1.5 py-0.5 rounded font-sans">Baja</span>}
+                      </td>
+                      <td className="px-4 py-3 text-gray-200">{tipoLabels[v.tipo_patente] ?? v.tipo_patente}</td>
+                      <td className="px-4 py-3 text-gray-200">{v.marca} {v.modelo}</td>
+                      <td className="px-4 py-3 text-gray-200">{v.anio ?? '—'}</td>
+                      <td className="px-4 py-3 text-gray-200">{v.km?.toLocaleString('es-AR')} km</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          {!v.activo ? (
+                            <Button size="sm" variant="primary" onClick={() => handleReactivate(v.id)}>
+                              Reactivar
+                            </Button>
+                          ) : deletingId === v.id ? (
+                            <>
+                              <Button size="sm" variant="danger" onClick={() => handleDelete(v.id)}>Confirmar baja</Button>
+                              <Button size="sm" variant="ghost" onClick={() => setDeletingId(null)}>Cancelar</Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button size="sm" variant="secondary" onClick={() => openEdit(v)}>Editar</Button>
+                              <Button size="sm" variant="danger" onClick={() => setDeletingId(v.id)}>Dar de baja</Button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+            </DataTable>
+          </div>
+
+          {/* Mobile: tarjetas apiladas */}
+          <div className="md:hidden space-y-3">
+            {filtrados.map(v => (
+              <div
+                key={v.id}
+                className={`bg-dark-200 border border-dark-400 rounded-lg p-4 space-y-3 ${!v.activo ? 'opacity-60' : ''}`}
+              >
+                {/* Header: patente + tipo */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-gray-100 font-mono tracking-wider text-lg font-bold">
+                      {v.patente}
+                      {!v.activo && (
+                        <span className="ml-2 text-xs text-gray-300 border border-dark-400 px-1.5 py-0.5 rounded font-sans font-normal">Baja</span>
                       )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-        </DataTable>
+                    </p>
+                    <p className="text-gray-200 text-sm mt-0.5">{v.marca} {v.modelo}</p>
+                  </div>
+                  <span className="shrink-0 text-xs uppercase tracking-wider px-2 py-0.5 rounded border text-gray-200 border-dark-400 bg-dark-300">
+                    {tipoLabels[v.tipo_patente] ?? v.tipo_patente}
+                  </span>
+                </div>
+
+                {/* Datos */}
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between gap-3">
+                    <span className="text-gray-300 text-xs uppercase tracking-wider">Cliente</span>
+                    <span className="text-gray-100 text-right truncate">{v.clientes?.nombre ?? '—'}</span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-gray-300 text-xs uppercase tracking-wider">Año</span>
+                    <span className="text-gray-100">{v.anio ?? '—'}</span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-gray-300 text-xs uppercase tracking-wider">KM</span>
+                    <span className="text-gray-100">{v.km?.toLocaleString('es-AR')} km</span>
+                  </div>
+                </div>
+
+                {/* Acciones */}
+                <div className="flex gap-2 pt-1">
+                  {!v.activo ? (
+                    <Button size="sm" variant="primary" className="flex-1 justify-center" onClick={() => handleReactivate(v.id)}>
+                      Reactivar
+                    </Button>
+                  ) : deletingId === v.id ? (
+                    <>
+                      <Button size="sm" variant="danger" className="flex-1 justify-center" onClick={() => handleDelete(v.id)}>Confirmar baja</Button>
+                      <Button size="sm" variant="ghost" className="flex-1 justify-center" onClick={() => setDeletingId(null)}>Cancelar</Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button size="sm" variant="secondary" className="flex-1 justify-center" onClick={() => openEdit(v)}>Editar</Button>
+                      <Button size="sm" variant="danger" className="flex-1 justify-center" onClick={() => setDeletingId(v.id)}>Dar de baja</Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {modalOpen && (

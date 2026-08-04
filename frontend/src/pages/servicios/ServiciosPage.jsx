@@ -154,39 +154,106 @@ export default function ServiciosPage() {
           )}
         />
       ) : (
-        <DataTable
-          columns={['Cliente', 'Vehículo', 'Servicio', 'Fecha', 'KM', 'Importe', 'Cobro', '']}
-          minWidth={700}
-        >
-              {filtrados.map(s => (
-                <tr key={s.id} className="border-b border-dark-400 last:border-0 hover:bg-dark-300 transition-colors">
-                  <td className="px-4 py-3 text-gray-100 font-medium">{s.clientes?.nombre ?? '—'}</td>
-                  <td className="px-4 py-3 text-gray-200 font-mono">{s.vehiculos?.patente} <span className="font-sans text-xs">{s.vehiculos?.marca} {s.vehiculos?.modelo}</span></td>
-                  <td className="px-4 py-3 text-gray-200">{s.tipo}</td>
-                  <td className="px-4 py-3 text-gray-200">{s.fecha.split('-').reverse().join('/')}</td>
-                  <td className="px-4 py-3 text-gray-200">{s.km?.toLocaleString('es-AR')} km</td>
-                  <td className="px-4 py-3 text-gray-200">
-                    {s.importe != null ? `$${Number(s.importe).toLocaleString('es-AR')}` : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    {s.cobrado ? (
-                      <span className="text-xs uppercase tracking-wider px-2 py-0.5 rounded border text-green-500 border-green-500/40 bg-green-500/10">
-                        Cobrado
-                      </span>
-                    ) : (
-                      <span className="text-xs uppercase tracking-wider px-2 py-0.5 rounded border text-yellow-500 border-yellow-500/40 bg-yellow-500/10">
-                        Pendiente
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button size="sm" variant="secondary" onClick={() => openEdit(s)}>Editar</Button>
+        <>
+          {/* Desktop: tabla completa */}
+          <div className="hidden md:block">
+            <DataTable
+              columns={['Cliente', 'Vehículo', 'Servicio', 'Fecha', 'KM', 'Importe', 'Cobro', '']}
+              minWidth={700}
+            >
+                  {filtrados.map(s => (
+                    <tr key={s.id} className="border-b border-dark-400 last:border-0 hover:bg-dark-300 transition-colors">
+                      <td className="px-4 py-3 text-gray-100 font-medium">{s.clientes?.nombre ?? '—'}</td>
+                      <td className="px-4 py-3 text-gray-200 font-mono">{s.vehiculos?.patente} <span className="font-sans text-xs">{s.vehiculos?.marca} {s.vehiculos?.modelo}</span></td>
+                      <td className="px-4 py-3 text-gray-200">{s.tipo}</td>
+                      <td className="px-4 py-3 text-gray-200">{s.fecha.split('-').reverse().join('/')}</td>
+                      <td className="px-4 py-3 text-gray-200">{s.km?.toLocaleString('es-AR')} km</td>
+                      <td className="px-4 py-3 text-gray-200">
+                        {s.importe != null ? `$${Number(s.importe).toLocaleString('es-AR')}` : '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        {s.cobrado ? (
+                          <span className="text-xs uppercase tracking-wider px-2 py-0.5 rounded border text-green-500 border-green-500/40 bg-green-500/10">
+                            Cobrado
+                          </span>
+                        ) : (
+                          <span className="text-xs uppercase tracking-wider px-2 py-0.5 rounded border text-yellow-500 border-yellow-500/40 bg-yellow-500/10">
+                            Pendiente
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button size="sm" variant="secondary" onClick={() => openEdit(s)}>Editar</Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+            </DataTable>
+          </div>
+
+          {/* Mobile: tarjetas apiladas */}
+          <div className="md:hidden space-y-3">
+            {filtrados.map(s => (
+              <div
+                key={s.id}
+                className="bg-dark-200 border border-dark-400 rounded-lg p-4 space-y-3"
+              >
+                {/* Header: tipo + fecha + estado de cobro */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-gray-100 font-medium">{s.tipo}</p>
+                    <p className="text-gray-300 text-xs mt-0.5">{s.fecha.split('-').reverse().join('/')}</p>
+                  </div>
+                  {s.cobrado ? (
+                    <span className="shrink-0 text-xs uppercase tracking-wider px-2 py-0.5 rounded border text-green-500 border-green-500/40 bg-green-500/10">
+                      Cobrado
+                    </span>
+                  ) : (
+                    <span className="shrink-0 text-xs uppercase tracking-wider px-2 py-0.5 rounded border text-yellow-500 border-yellow-500/40 bg-yellow-500/10">
+                      Pendiente
+                    </span>
+                  )}
+                </div>
+
+                {/* Datos */}
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between gap-3">
+                    <span className="text-gray-300 text-xs uppercase tracking-wider">Cliente</span>
+                    <span className="text-gray-100 text-right truncate">{s.clientes?.nombre ?? '—'}</span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-gray-300 text-xs uppercase tracking-wider">Vehículo</span>
+                    <span className="text-gray-100 text-right font-mono">{s.vehiculos?.patente}</span>
+                  </div>
+                  {(s.vehiculos?.marca || s.vehiculos?.modelo) && (
+                    <div className="flex justify-between gap-3">
+                      <span className="text-gray-300 text-xs uppercase tracking-wider">Marca / Modelo</span>
+                      <span className="text-gray-100 text-right truncate">{s.vehiculos?.marca} {s.vehiculos?.modelo}</span>
                     </div>
-                  </td>
-                </tr>
-              ))}
-        </DataTable>
+                  )}
+                  <div className="flex justify-between gap-3">
+                    <span className="text-gray-300 text-xs uppercase tracking-wider">KM</span>
+                    <span className="text-gray-100">{s.km?.toLocaleString('es-AR')} km</span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-gray-300 text-xs uppercase tracking-wider">Importe</span>
+                    <span className="text-gray-100 font-medium">
+                      {s.importe != null ? `$${Number(s.importe).toLocaleString('es-AR')}` : '—'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Acciones */}
+                <div className="flex gap-2 pt-1">
+                  <Button size="sm" variant="secondary" className="flex-1 justify-center" onClick={() => openEdit(s)}>
+                    Editar
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {modalOpen && (

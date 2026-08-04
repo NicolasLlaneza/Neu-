@@ -387,34 +387,129 @@ export default function ClientesPage() {
           )}
         />
       ) : (
-        <DataTable
-          columns={['Tipo', 'Nombre', 'Teléfono', 'Email', 'Canal', 'Estado', '']}
-          minWidth={640}
-        >
-              {filtrados.map(cliente => (
-                <tr key={cliente.id} className={`border-b border-dark-400 last:border-0 hover:bg-dark-300 transition-colors ${!cliente.activo ? 'opacity-50' : ''}`}>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs uppercase tracking-wider px-2 py-0.5 rounded border ${
-                      cliente.tipo === 'empresa'
-                        ? 'text-blue-400 border-blue-400/40 bg-blue-400/10'
-                        : 'text-gray-200 border-dark-400 bg-dark-300'
-                    }`}>
-                      {cliente.tipo === 'empresa' ? 'Empresa' : 'Persona'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-100 font-medium">
-                    {cliente.nombre}
+        <>
+          {/* Desktop: tabla completa */}
+          <div className="hidden md:block">
+            <DataTable
+              columns={['Tipo', 'Nombre', 'Teléfono', 'Email', 'Canal', 'Estado', '']}
+              minWidth={640}
+            >
+                  {filtrados.map(cliente => (
+                    <tr key={cliente.id} className={`border-b border-dark-400 last:border-0 hover:bg-dark-300 transition-colors ${!cliente.activo ? 'opacity-50' : ''}`}>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs uppercase tracking-wider px-2 py-0.5 rounded border ${
+                          cliente.tipo === 'empresa'
+                            ? 'text-blue-400 border-blue-400/40 bg-blue-400/10'
+                            : 'text-gray-200 border-dark-400 bg-dark-300'
+                        }`}>
+                          {cliente.tipo === 'empresa' ? 'Empresa' : 'Persona'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-100 font-medium">
+                        {cliente.nombre}
+                        {cliente.tipo === 'empresa' && cliente.contacto_nombre && (
+                          <span className="block text-xs text-gray-300 font-normal mt-0.5">
+                            Contacto: {cliente.contacto_nombre}
+                          </span>
+                        )}
+                        {!cliente.activo && <span className="ml-2 text-xs text-gray-300 border border-dark-400 px-1.5 py-0.5 rounded">Baja</span>}
+                      </td>
+                      <td className="px-4 py-3 text-gray-200">{cliente.telefono}</td>
+                      <td className="px-4 py-3 text-gray-200">{cliente.email ?? '—'}</td>
+                      <td className="px-4 py-3 text-gray-200">{cliente.canal_preferido}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className="px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wide"
+                          style={{
+                            color: estadoConfig[cliente.estado]?.color,
+                            backgroundColor: estadoConfig[cliente.estado]?.color + '22',
+                            border: `1px solid ${estadoConfig[cliente.estado]?.color}55`,
+                          }}
+                        >
+                          {estadoConfig[cliente.estado]?.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          {!cliente.activo ? (
+                            <Button size="sm" variant="primary" onClick={() => handleReactivate(cliente.id)}>
+                              Reactivar
+                            </Button>
+                          ) : deletingId === cliente.id ? (
+                            <>
+                              <Button size="sm" variant="danger" onClick={() => handleDelete(cliente.id)}>
+                                Confirmar baja
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={() => setDeletingId(null)}>
+                                Cancelar
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button size="sm" variant="secondary" onClick={() => openEdit(cliente)}>
+                                Editar
+                              </Button>
+                              <Button size="sm" variant="danger" onClick={() => setDeletingId(cliente.id)}>
+                                Dar de baja
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+            </DataTable>
+          </div>
+
+          {/* Mobile: tarjetas apiladas (sin scroll horizontal) */}
+          <div className="md:hidden space-y-3">
+            {filtrados.map(cliente => (
+              <div
+                key={cliente.id}
+                className={`bg-dark-200 border border-dark-400 rounded-lg p-4 space-y-3 ${!cliente.activo ? 'opacity-60' : ''}`}
+              >
+                {/* Header: nombre + tipo */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-gray-100 font-medium truncate">
+                      {cliente.nombre}
+                      {!cliente.activo && (
+                        <span className="ml-2 text-xs text-gray-300 border border-dark-400 px-1.5 py-0.5 rounded font-normal">Baja</span>
+                      )}
+                    </p>
                     {cliente.tipo === 'empresa' && cliente.contacto_nombre && (
-                      <span className="block text-xs text-gray-300 font-normal mt-0.5">
+                      <p className="text-xs text-gray-300 mt-0.5 truncate">
                         Contacto: {cliente.contacto_nombre}
-                      </span>
+                      </p>
                     )}
-                    {!cliente.activo && <span className="ml-2 text-xs text-gray-300 border border-dark-400 px-1.5 py-0.5 rounded">Baja</span>}
-                  </td>
-                  <td className="px-4 py-3 text-gray-200">{cliente.telefono}</td>
-                  <td className="px-4 py-3 text-gray-200">{cliente.email ?? '—'}</td>
-                  <td className="px-4 py-3 text-gray-200">{cliente.canal_preferido}</td>
-                  <td className="px-4 py-3">
+                  </div>
+                  <span className={`shrink-0 text-xs uppercase tracking-wider px-2 py-0.5 rounded border ${
+                    cliente.tipo === 'empresa'
+                      ? 'text-blue-400 border-blue-400/40 bg-blue-400/10'
+                      : 'text-gray-200 border-dark-400 bg-dark-300'
+                  }`}>
+                    {cliente.tipo === 'empresa' ? 'Empresa' : 'Persona'}
+                  </span>
+                </div>
+
+                {/* Contacto y estado */}
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between gap-3">
+                    <span className="text-gray-300 text-xs uppercase tracking-wider">Teléfono</span>
+                    <span className="text-gray-100 text-right break-all">{cliente.telefono}</span>
+                  </div>
+                  {cliente.email && (
+                    <div className="flex justify-between gap-3">
+                      <span className="text-gray-300 text-xs uppercase tracking-wider">Email</span>
+                      <span className="text-gray-100 text-right break-all">{cliente.email}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between gap-3">
+                    <span className="text-gray-300 text-xs uppercase tracking-wider">Canal</span>
+                    <span className="text-gray-100">{cliente.canal_preferido}</span>
+                  </div>
+                  <div className="flex justify-between gap-3 items-center">
+                    <span className="text-gray-300 text-xs uppercase tracking-wider">Estado</span>
                     <span
                       className="px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wide"
                       style={{
@@ -425,38 +520,39 @@ export default function ClientesPage() {
                     >
                       {estadoConfig[cliente.estado]?.label}
                     </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-2">
-                      {!cliente.activo ? (
-                        // Cliente dado de baja: solo botón reactivar
-                        <Button size="sm" variant="primary" onClick={() => handleReactivate(cliente.id)}>
-                          Reactivar
-                        </Button>
-                      ) : deletingId === cliente.id ? (
-                        <>
-                          <Button size="sm" variant="danger" onClick={() => handleDelete(cliente.id)}>
-                            Confirmar baja
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => setDeletingId(null)}>
-                            Cancelar
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button size="sm" variant="secondary" onClick={() => openEdit(cliente)}>
-                            Editar
-                          </Button>
-                          <Button size="sm" variant="danger" onClick={() => setDeletingId(cliente.id)}>
-                            Dar de baja
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-        </DataTable>
+                  </div>
+                </div>
+
+                {/* Acciones */}
+                <div className="flex gap-2 pt-1">
+                  {!cliente.activo ? (
+                    <Button size="sm" variant="primary" className="flex-1 justify-center" onClick={() => handleReactivate(cliente.id)}>
+                      Reactivar
+                    </Button>
+                  ) : deletingId === cliente.id ? (
+                    <>
+                      <Button size="sm" variant="danger" className="flex-1 justify-center" onClick={() => handleDelete(cliente.id)}>
+                        Confirmar baja
+                      </Button>
+                      <Button size="sm" variant="ghost" className="flex-1 justify-center" onClick={() => setDeletingId(null)}>
+                        Cancelar
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button size="sm" variant="secondary" className="flex-1 justify-center" onClick={() => openEdit(cliente)}>
+                        Editar
+                      </Button>
+                      <Button size="sm" variant="danger" className="flex-1 justify-center" onClick={() => setDeletingId(cliente.id)}>
+                        Dar de baja
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Modal */}
