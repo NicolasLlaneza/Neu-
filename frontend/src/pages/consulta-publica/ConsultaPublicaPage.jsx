@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react'
-import { Search, CheckCircle, XCircle } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Search, CheckCircle, XCircle, ChevronDown } from 'lucide-react'
 import { Turnstile } from '@marsidev/react-turnstile'
 import { supabase } from '@/lib/supabase'
 import Logo from '@/components/Logo'
@@ -23,7 +23,23 @@ export default function ConsultaPublicaPage() {
   const [error, setError]           = useState(null)
   const [captchaToken, setCaptchaToken] = useState(null)
   const [preview, setPreview]       = useState(null)  // URL de foto en vista ampliada
+  const [expandidos, setExpandidos] = useState(new Set([0])) // servicios abiertos (índices)
   const turnstileRef = useRef(null)
+
+  // Al llegar resultados nuevos, dejamos solo el servicio más reciente (índice 0)
+  // desplegado — el resto colapsado para que la vista quede corta y clara.
+  useEffect(() => {
+    if (resultado) setExpandidos(new Set([0]))
+  }, [resultado])
+
+  function toggleServicio(i) {
+    setExpandidos(prev => {
+      const next = new Set(prev)
+      if (next.has(i)) next.delete(i)
+      else next.add(i)
+      return next
+    })
+  }
 
   async function handleBuscar(e) {
     e.preventDefault()
@@ -71,8 +87,8 @@ export default function ConsultaPublicaPage() {
   }
 
   return (
-    <div className="min-h-screen bg-dark px-4 py-12">
-      <div className="max-w-xl mx-auto">
+    <div className="min-h-screen bg-dark px-4 py-12 md:py-16">
+      <div className="max-w-xl md:max-w-3xl mx-auto">
 
         {/* Logo */}
         <div className="flex justify-center mb-10">
@@ -80,11 +96,11 @@ export default function ConsultaPublicaPage() {
         </div>
 
         {/* Título */}
-        <div className="text-center mb-8">
-          <h2 className="text-gray-100 text-lg font-bold uppercase tracking-widest mb-1">
+        <div className="text-center mb-8 md:mb-10">
+          <h2 className="text-gray-100 text-lg md:text-2xl font-bold uppercase tracking-widest mb-2">
             Consulta de historial
           </h2>
-          <p className="text-gray-200 text-sm">
+          <p className="text-gray-200 text-sm md:text-base">
             Ingresá la patente de tu vehículo para ver sus servicios
           </p>
         </div>
@@ -169,21 +185,21 @@ export default function ConsultaPublicaPage() {
 
         {/* ── STEP: RESULTS ── */}
         {step === 'results' && resultado && (
-          <div className="space-y-4">
+          <div className="space-y-5">
 
-            {/* Ficha */}
-            <div className="bg-dark-200 border border-dark-400 rounded-lg p-5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-gray-100 text-2xl font-black font-mono tracking-widest">
+            {/* Ficha del vehículo */}
+            <div className="bg-dark-200 border border-dark-400 rounded-lg p-5 md:p-7">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-gray-100 text-2xl md:text-4xl font-black font-mono tracking-widest">
                     {resultado.patente}
                   </p>
-                  <p className="text-gray-200 text-sm mt-1">
+                  <p className="text-gray-100 text-base md:text-xl font-medium mt-2">
                     {resultado.marca} {resultado.modelo}
-                    {resultado.anio && <span className="text-gray-300"> · {resultado.anio}</span>}
+                    {resultado.anio && <span className="text-gray-200 font-normal"> · {resultado.anio}</span>}
                   </p>
                 </div>
-                <span className="text-xs uppercase tracking-wider text-gray-200 bg-dark-400 px-2 py-1 rounded">
+                <span className="text-xs uppercase tracking-wider text-gray-200 bg-dark-400 px-2.5 py-1 rounded shrink-0">
                   {tipoLabels[resultado.tipo_patente] ?? resultado.tipo_patente}
                 </span>
               </div>
@@ -191,58 +207,107 @@ export default function ConsultaPublicaPage() {
 
             {/* Historial */}
             <div className="bg-dark-200 border border-dark-400 rounded-lg overflow-hidden">
-              <div className="px-5 py-3 border-b border-dark-400">
-                <h3 className="text-xs uppercase tracking-widest text-gray-200 font-semibold">
+              <div className="px-5 md:px-7 py-3.5 border-b border-dark-400 flex items-baseline justify-between gap-3">
+                <h3 className="text-xs md:text-sm uppercase tracking-widest text-gray-100 font-semibold">
                   Historial de servicios
                 </h3>
+                <span className="text-xs md:text-sm text-gray-200 tabular-nums">
+                  {resultado.servicios.length} {resultado.servicios.length === 1 ? 'servicio' : 'servicios'}
+                </span>
               </div>
 
               {resultado.servicios.length === 0 ? (
-                <p className="px-5 py-6 text-gray-200 text-sm">Sin servicios registrados.</p>
+                <p className="px-5 py-8 text-gray-200 text-sm md:text-base text-center">Sin servicios registrados.</p>
               ) : (
                 <div className="divide-y divide-dark-400">
-                  {resultado.servicios.map((s, i) => (
-                    <div key={i} className="px-5 py-4">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-gray-100 text-sm font-medium">{s.tipo}</span>
-                        <span className="text-gray-200 text-xs">
-                          {s.fecha.split('-').reverse().join('/')}
-                        </span>
+                  {resultado.servicios.map((s, i) => {
+                    const abierto = expandidos.has(i)
+                    return (
+                      <div key={i}>
+                        {/* Encabezado clickeable */}
+                        <button
+                          type="button"
+                          onClick={() => toggleServicio(i)}
+                          aria-expanded={abierto}
+                          className="w-full px-5 md:px-7 py-4 md:py-5 flex items-center justify-between gap-4 hover:bg-dark-300 transition-colors text-left"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-gray-100 text-base md:text-lg font-semibold leading-tight">
+                              {s.tipo}
+                            </p>
+                            <p className="text-gray-200 text-sm md:text-base mt-1 tabular-nums">
+                              {s.fecha.split('-').reverse().join('/')}
+                              {s.km != null && (
+                                <span className="text-gray-300"> · {s.km.toLocaleString('es-AR')} km</span>
+                              )}
+                            </p>
+                          </div>
+                          <ChevronDown
+                            size={20}
+                            className={`text-gray-200 shrink-0 transition-transform duration-200 ${abierto ? 'rotate-180' : ''}`}
+                          />
+                        </button>
+
+                        {/* Contenido expandido */}
+                        {abierto && (
+                          <div className="px-5 md:px-7 pb-6 pt-1 space-y-5">
+                            {s.producto && (
+                              <div>
+                                <p className="text-xs uppercase tracking-widest text-gray-300 font-semibold mb-2">
+                                  Producto
+                                </p>
+                                <p className="text-gray-100 text-sm md:text-base leading-relaxed whitespace-pre-line">
+                                  {s.producto}
+                                </p>
+                              </div>
+                            )}
+                            {s.observaciones && (
+                              <div>
+                                <p className="text-xs uppercase tracking-widest text-gray-300 font-semibold mb-2">
+                                  Detalle
+                                </p>
+                                <p className="text-gray-100 text-sm md:text-base leading-relaxed whitespace-pre-line">
+                                  {s.observaciones}
+                                </p>
+                              </div>
+                            )}
+                            {Array.isArray(s.fotos) && s.fotos.length > 0 && (
+                              <div>
+                                <p className="text-xs uppercase tracking-widest text-gray-300 font-semibold mb-3">
+                                  Fotos
+                                </p>
+                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                                  {s.fotos.map((url, j) => (
+                                    <button
+                                      key={j}
+                                      type="button"
+                                      onClick={() => setPreview(url)}
+                                      className="relative aspect-square bg-dark-300 rounded overflow-hidden border border-dark-400 hover:border-red transition-colors group"
+                                    >
+                                      <img
+                                        src={url}
+                                        alt={`Foto ${j + 1}`}
+                                        className="w-full h-full object-cover cursor-zoom-in"
+                                        loading="lazy"
+                                        decoding="async"
+                                      />
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <div className="flex gap-4 text-xs text-gray-300">
-                        <span>{s.km?.toLocaleString('es-AR')} km</span>
-                        {s.producto && <span>{s.producto}</span>}
-                      </div>
-                      {s.observaciones && (
-                        <p className="text-xs text-gray-300 mt-1">{s.observaciones}</p>
-                      )}
-                      {Array.isArray(s.fotos) && s.fotos.length > 0 && (
-                        <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-2">
-                          {s.fotos.map((url, j) => (
-                            <button
-                              key={j}
-                              type="button"
-                              onClick={() => setPreview(url)}
-                              className="relative aspect-square bg-dark-300 rounded overflow-hidden border border-dark-400 hover:border-red transition-colors group"
-                            >
-                              <img
-                                src={url}
-                                alt={`Foto ${j + 1}`}
-                                className="w-full h-full object-cover cursor-zoom-in"
-                              />
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
 
             <button
               onClick={handleRechazar}
-              className="text-xs text-gray-300 hover:text-gray-200 transition-colors mx-auto block"
+              className="text-sm text-gray-200 hover:text-gray-100 transition-colors mx-auto block py-2"
             >
               ← Nueva consulta
             </button>
