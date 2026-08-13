@@ -23,13 +23,14 @@ export default function ConsultaPublicaPage() {
   const [error, setError]           = useState(null)
   const [captchaToken, setCaptchaToken] = useState(null)
   const [preview, setPreview]       = useState(null)  // URL de foto en vista ampliada
-  const [expandidos, setExpandidos] = useState(new Set([0])) // servicios abiertos (índices)
+  const [expandidos, setExpandidos] = useState(new Set()) // servicios abiertos (índices)
   const turnstileRef = useRef(null)
 
-  // Al llegar resultados nuevos, dejamos solo el servicio más reciente (índice 0)
-  // desplegado — el resto colapsado para que la vista quede corta y clara.
+  // Al llegar resultados nuevos, arrancamos todos colapsados — la vista queda
+  // corta y el cliente elige qué servicio abrir. Con muchos servicios evita
+  // el "chorizo" visual del scroll infinito.
   useEffect(() => {
-    if (resultado) setExpandidos(new Set([0]))
+    if (resultado) setExpandidos(new Set())
   }, [resultado])
 
   function toggleServicio(i) {
