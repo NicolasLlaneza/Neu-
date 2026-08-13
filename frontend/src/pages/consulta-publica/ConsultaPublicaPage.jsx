@@ -17,10 +17,10 @@ const tipoLabels = {
 // [COMPLETAR] con los datos reales de Grupo Calper cuando Nicolás los pase.
 // Un valor null/'' oculta la fila correspondiente.
 const CONTACTO_TALLER = {
-  telefono:  '+54 261 XXX-XXXX',                       // click-to-call
-  whatsapp:  '5492611234567',                          // número sin +, se usa en wa.me/{numero}
-  direccion: 'Calle Ejemplo 1234, Mendoza',            // muestra sin link (se puede sumar Google Maps luego)
-  horarios:  'Lunes a viernes 9 a 18 hs · Sábados 9 a 13 hs',
+  telefono:  '+54 9 2612 70-0011',                     // click-to-call
+  whatsapp:  '5492612700011',                          // número sin +, se usa en wa.me/{numero}
+  direccion: 'Bandera de los Andes esquina Allayme',   // muestra sin link (se puede sumar Google Maps luego)
+  horarios:  'Lunes a viernes de 9 a 18 hs',
 }
 
 // step: 'search' → 'confirm' → 'results'
