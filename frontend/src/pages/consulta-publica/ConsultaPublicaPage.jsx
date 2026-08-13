@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
-import { Search, CheckCircle, XCircle, ChevronDown } from 'lucide-react'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { Search, CheckCircle, XCircle, ChevronDown, Phone, MessageCircle, MapPin, Clock } from 'lucide-react'
 import { Turnstile } from '@marsidev/react-turnstile'
 import { supabase } from '@/lib/supabase'
 import Logo from '@/components/Logo'
@@ -13,6 +13,16 @@ const tipoLabels = {
   'moto-nueva': 'Motocicleta',
 }
 
+// Datos de contacto del taller que se muestran al pie de la consulta pública.
+// [COMPLETAR] con los datos reales de Grupo Calper cuando Nicolás los pase.
+// Un valor null/'' oculta la fila correspondiente.
+const CONTACTO_TALLER = {
+  telefono:  '+54 261 XXX-XXXX',                       // click-to-call
+  whatsapp:  '5492611234567',                          // número sin +, se usa en wa.me/{numero}
+  direccion: 'Calle Ejemplo 1234, Mendoza',            // muestra sin link (se puede sumar Google Maps luego)
+  horarios:  'Lunes a viernes 9 a 18 hs · Sábados 9 a 13 hs',
+}
+
 // step: 'search' → 'confirm' → 'results'
 
 export default function ConsultaPublicaPage() {
@@ -24,14 +34,33 @@ export default function ConsultaPublicaPage() {
   const [captchaToken, setCaptchaToken] = useState(null)
   const [preview, setPreview]       = useState(null)  // URL de foto en vista ampliada
   const [expandidos, setExpandidos] = useState(new Set()) // servicios abiertos (índices)
+  const [busqueda, setBusqueda]     = useState('')       // filtro del historial
   const turnstileRef = useRef(null)
 
   // Al llegar resultados nuevos, arrancamos todos colapsados — la vista queda
   // corta y el cliente elige qué servicio abrir. Con muchos servicios evita
   // el "chorizo" visual del scroll infinito.
   useEffect(() => {
-    if (resultado) setExpandidos(new Set())
+    if (resultado) {
+      setExpandidos(new Set())
+      setBusqueda('')
+    }
   }, [resultado])
+
+  // Servicios filtrados por búsqueda (tipo, producto, observaciones).
+  // Mantiene el índice original en `i` para que expandir siga funcionando
+  // aunque el orden visual cambie.
+  const serviciosFiltrados = useMemo(() => {
+    const q = busqueda.trim().toLowerCase()
+    const todos = (resultado?.servicios ?? []).map((s, i) => ({ ...s, __i: i }))
+    if (!q) return todos
+    return todos.filter(s =>
+      (s.tipo ?? '').toLowerCase().includes(q) ||
+      (s.producto ?? '').toLowerCase().includes(q) ||
+      (s.observaciones ?? '').toLowerCase().includes(q) ||
+      (s.fecha ?? '').includes(q)
+    )
+  }, [resultado, busqueda])
 
   function toggleServicio(i) {
     setExpandidos(prev => {
@@ -213,15 +242,48 @@ export default function ConsultaPublicaPage() {
                   Historial de servicios
                 </h3>
                 <span className="text-xs md:text-sm text-gray-200 tabular-nums">
-                  {resultado.servicios.length} {resultado.servicios.length === 1 ? 'servicio' : 'servicios'}
+                  {busqueda.trim()
+                    ? `${serviciosFiltrados.length} de ${resultado.servicios.length}`
+                    : `${resultado.servicios.length} ${resultado.servicios.length === 1 ? 'servicio' : 'servicios'}`}
                 </span>
               </div>
 
+              {/* Barra de búsqueda: solo si hay al menos 3 servicios, sino no aporta */}
+              {resultado.servicios.length >= 3 && (
+                <div className="px-5 md:px-7 py-3 border-b border-dark-400 bg-dark-300">
+                  <div className="relative">
+                    <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={busqueda}
+                      onChange={e => setBusqueda(e.target.value)}
+                      placeholder="Buscar por tipo, producto o fecha..."
+                      className="w-full bg-dark-200 border border-dark-400 text-gray-100 text-sm md:text-base rounded pl-9 pr-8 py-2 outline-none focus:border-red transition-colors placeholder:text-gray-300"
+                    />
+                    {busqueda && (
+                      <button
+                        type="button"
+                        onClick={() => setBusqueda('')}
+                        aria-label="Limpiar búsqueda"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-100 transition-colors p-1"
+                      >
+                        <XCircle size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {resultado.servicios.length === 0 ? (
                 <p className="px-5 py-8 text-gray-200 text-sm md:text-base text-center">Sin servicios registrados.</p>
+              ) : serviciosFiltrados.length === 0 ? (
+                <p className="px-5 py-8 text-gray-200 text-sm md:text-base text-center">
+                  Sin resultados para "{busqueda}". Probá con otra palabra.
+                </p>
               ) : (
                 <div className="divide-y divide-dark-400">
-                  {resultado.servicios.map((s, i) => {
+                  {serviciosFiltrados.map((s) => {
+                    const i = s.__i
                     const abierto = expandidos.has(i)
                     return (
                       <div key={i}>
@@ -305,6 +367,51 @@ export default function ConsultaPublicaPage() {
                 </div>
               )}
             </div>
+
+            {/* Bloque de contacto del taller */}
+            {(CONTACTO_TALLER.telefono || CONTACTO_TALLER.whatsapp || CONTACTO_TALLER.direccion) && (
+              <div className="bg-dark-200 border border-dark-400 rounded-lg overflow-hidden">
+                <div className="px-5 md:px-7 py-3.5 border-b border-dark-400">
+                  <h3 className="text-xs md:text-sm uppercase tracking-widest text-gray-100 font-semibold">
+                    Contactanos
+                  </h3>
+                </div>
+                <div className="px-5 md:px-7 py-4 md:py-5 space-y-3">
+                  {CONTACTO_TALLER.telefono && (
+                    <a
+                      href={`tel:${CONTACTO_TALLER.telefono.replace(/\s/g, '')}`}
+                      className="flex items-center gap-3 text-gray-100 hover:text-red-bright transition-colors"
+                    >
+                      <Phone size={16} className="text-gray-200 shrink-0" />
+                      <span className="text-sm md:text-base">{CONTACTO_TALLER.telefono}</span>
+                    </a>
+                  )}
+                  {CONTACTO_TALLER.whatsapp && (
+                    <a
+                      href={`https://wa.me/${CONTACTO_TALLER.whatsapp}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 text-gray-100 hover:text-red-bright transition-colors"
+                    >
+                      <MessageCircle size={16} className="text-gray-200 shrink-0" />
+                      <span className="text-sm md:text-base">Escribinos por WhatsApp</span>
+                    </a>
+                  )}
+                  {CONTACTO_TALLER.direccion && (
+                    <div className="flex items-start gap-3 text-gray-100">
+                      <MapPin size={16} className="text-gray-200 shrink-0 mt-0.5" />
+                      <span className="text-sm md:text-base">{CONTACTO_TALLER.direccion}</span>
+                    </div>
+                  )}
+                  {CONTACTO_TALLER.horarios && (
+                    <div className="flex items-start gap-3 text-gray-200">
+                      <Clock size={16} className="text-gray-300 shrink-0 mt-0.5" />
+                      <span className="text-xs md:text-sm">{CONTACTO_TALLER.horarios}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             <button
               onClick={handleRechazar}
