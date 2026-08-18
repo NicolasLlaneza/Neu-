@@ -13,6 +13,7 @@ import { useCachedResource } from '@/hooks/useCachedResource'
 import logger from '@/lib/logger'
 import { COLORS } from '@/lib/colors'
 import { formatearARS } from '@/lib/formato'
+import { ROUTES } from '@/lib/routes'
 import EnviarWhatsAppModal from '@/components/EnviarWhatsAppModal'
 import Button from '@/components/Button'
 
@@ -249,7 +250,7 @@ export default function InicioPage() {
               color={COLORS.warning}
               titulo={`${data.sinCobrar.length} servicio${data.sinCobrar.length !== 1 ? 's' : ''} sin cobrar`}
               detalle={`${formatearARS(data.totalSinCobrar)} pendientes de cobro`}
-              to="/servicios"
+              to={ROUTES.SERVICIOS}
             />
           )}
           {data.dormidos.length > 0 && (
@@ -258,7 +259,7 @@ export default function InicioPage() {
               color={COLORS.danger}
               titulo={`${data.dormidos.length} cliente${data.dormidos.length !== 1 ? 's' : ''} sin volver`}
               detalle={`Sin servicios hace más de ${MESES_INACTIVIDAD} meses`}
-              to="/notificaciones"
+              to={ROUTES.NOTIFICACIONES}
             />
           )}
           {data.notifsFallidas > 0 && (
@@ -267,7 +268,7 @@ export default function InicioPage() {
               color={COLORS.danger}
               titulo={`${data.notifsFallidas} notificación${data.notifsFallidas !== 1 ? 'es' : ''} fallida${data.notifsFallidas !== 1 ? 's' : ''}`}
               detalle="Revisá el motivo y reintentá el envío"
-              to="/notificaciones"
+              to={ROUTES.NOTIFICACIONES}
             />
           )}
         </div>
@@ -317,7 +318,7 @@ export default function InicioPage() {
           {data.sinCobrar.length > 10 && (
             <p className="text-xs text-gray-300 mt-2">
               Mostrando 10 de {data.sinCobrar.length}.{' '}
-              <Link to="/servicios" className="text-red hover:text-red-bright">Ver todos</Link>
+              <Link to={ROUTES.SERVICIOS} className="text-red hover:text-red-bright">Ver todos</Link>
             </p>
           )}
         </section>
@@ -345,7 +346,7 @@ export default function InicioPage() {
                     <td className="px-4 py-2.5 text-gray-200">{c.telefono}</td>
                     <td className="px-4 py-2.5 text-right">
                       <Link
-                        to="/notificaciones"
+                        to={ROUTES.NOTIFICACIONES}
                         className="text-xs text-red hover:text-red-bright font-semibold uppercase tracking-wider"
                       >
                         Contactar

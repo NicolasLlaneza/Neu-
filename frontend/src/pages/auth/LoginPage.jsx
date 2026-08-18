@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
+import { ROUTES } from '@/lib/routes'
 import Logo from '@/components/Logo'
 
 export default function LoginPage() {
@@ -15,7 +16,7 @@ export default function LoginPage() {
 
   // Si ya hay sesión activa, ir directo al panel
   useEffect(() => {
-    if (!loading && session) navigate('/clientes', { replace: true })
+    if (!loading && session) navigate(ROUTES.CLIENTES, { replace: true })
   }, [session, loading])
 
   async function handleSubmit(e) {
@@ -100,7 +101,7 @@ export default function LoginPage() {
           </button>
 
           <a
-            href="/recuperar-password"
+            href={ROUTES.RECUPERAR_PASSWORD}
             className="block text-center text-xs text-gray-200 hover:text-gray-100 transition-colors"
           >
             Olvidé mi contraseña
@@ -109,9 +110,9 @@ export default function LoginPage() {
 
         {/* Footer legal */}
         <div className="flex items-center justify-center gap-4 mt-6 text-xs text-gray-300">
-          <a href="/privacidad" className="hover:text-gray-100 transition-colors">Privacidad</a>
+          <a href={ROUTES.PRIVACIDAD} className="hover:text-gray-100 transition-colors">Privacidad</a>
           <span>·</span>
-          <a href="/terminos" className="hover:text-gray-100 transition-colors">Términos</a>
+          <a href={ROUTES.TERMINOS} className="hover:text-gray-100 transition-colors">Términos</a>
         </div>
 
       </div>

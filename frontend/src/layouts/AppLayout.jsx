@@ -7,6 +7,7 @@ import PasswordChangeReminder from '@/components/PasswordChangeReminder'
 import { useInactivityTimeout } from '@/hooks/useInactivityTimeout'
 import { supabase } from '@/lib/supabase'
 import { useNavigate } from 'react-router-dom'
+import { ROUTES } from '@/lib/routes'
 
 export default function AppLayout({ children }) {
   const navigate = useNavigate()
@@ -14,7 +15,7 @@ export default function AppLayout({ children }) {
 
   async function handleLogout() {
     await supabase.auth.signOut()
-    navigate('/login', { replace: true })
+    navigate(ROUTES.LOGIN, { replace: true })
   }
 
   return (

@@ -6,6 +6,7 @@ import { MAX_LEN_PATENTE } from '@/lib/patente'
 import { formatearKm } from '@/lib/formato'
 import { WHATSAPP_BASE_URL } from '@/lib/whatsapp'
 import { CONTACTO_TALLER } from '@/lib/empresa'
+import { ROUTES } from '@/lib/routes'
 import Logo from '@/components/Logo'
 import Button from '@/components/Button'
 
@@ -418,9 +419,9 @@ export default function ConsultaPublicaPage() {
 
         {/* Footer legal */}
         <div className="flex items-center justify-center gap-4 mt-8 text-xs text-gray-300">
-          <a href="/privacidad" className="hover:text-gray-100 transition-colors">Privacidad</a>
+          <a href={ROUTES.PRIVACIDAD} className="hover:text-gray-100 transition-colors">Privacidad</a>
           <span>·</span>
-          <a href="/terminos" className="hover:text-gray-100 transition-colors">Términos</a>
+          <a href={ROUTES.TERMINOS} className="hover:text-gray-100 transition-colors">Términos</a>
         </div>
 
       </div>

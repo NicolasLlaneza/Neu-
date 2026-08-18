@@ -4,6 +4,7 @@ import { CheckCircle, AlertTriangle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
 import { MIN_PASSWORD } from '@/lib/passwordRules'
+import { ROUTES } from '@/lib/routes'
 import Logo from '@/components/Logo'
 import Button from '@/components/Button'
 
@@ -58,7 +59,7 @@ export default function NuevaPasswordPage() {
     }
 
     setListo(true)
-    setTimeout(() => navigate('/inicio', { replace: true }), 2500)
+    setTimeout(() => navigate(ROUTES.INICIO, { replace: true }), 2500)
   }
 
   return (
@@ -92,7 +93,7 @@ export default function NuevaPasswordPage() {
                 Los enlaces de recuperación duran una hora y se pueden usar una sola vez.
               </p>
               <Link
-                to="/recuperar-password"
+                to={ROUTES.RECUPERAR_PASSWORD}
                 className="inline-block text-xs text-red hover:text-red-bright transition-colors font-semibold uppercase tracking-wider pt-2"
               >
                 Pedir uno nuevo

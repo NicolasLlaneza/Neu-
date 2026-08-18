@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
 import Logo from '@/components/Logo'
 import Button from '@/components/Button'
+import { ROUTES } from '@/lib/routes'
 
 export default function RecuperarPasswordPage() {
   const [email, setEmail]       = useState('')
@@ -61,7 +62,7 @@ export default function RecuperarPasswordPage() {
                 El enlace vence en una hora. Si no lo ves, mirá en spam.
               </p>
               <Link
-                to="/login"
+                to={ROUTES.LOGIN}
                 className="inline-flex items-center gap-2 text-xs text-gray-200 hover:text-gray-100 transition-colors pt-2"
               >
                 <ArrowLeft size={14} /> Volver al inicio de sesión
@@ -101,7 +102,7 @@ export default function RecuperarPasswordPage() {
               </Button>
 
               <Link
-                to="/login"
+                to={ROUTES.LOGIN}
                 className="flex items-center justify-center gap-2 text-xs text-gray-200 hover:text-gray-100 transition-colors"
               >
                 <ArrowLeft size={14} /> Volver al inicio de sesión

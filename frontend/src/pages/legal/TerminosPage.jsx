@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import Logo from '@/components/Logo'
 import { NOMBRE_MARCA, NOMBRE_LEGAL } from '@/lib/empresa'
+import { ROUTES } from '@/lib/routes'
 
 export default function TerminosPage() {
   return (
@@ -56,7 +57,7 @@ export default function TerminosPage() {
           <section>
             <h2 className="text-gray-100 text-base font-semibold uppercase tracking-wider mb-2">4. Titularidad de la información</h2>
             <p>
-              La información técnica de los servicios (tipo, fecha, producto, observaciones, fotos) es propiedad de {NOMBRE_LEGAL} en su calidad de prestador del servicio de reparación y mantenimiento. El titular del vehículo tiene derecho a acceder a esta información conforme a los derechos ARCO detallados en la <Link to="/privacidad" className="text-red hover:text-red-bright">Política de Privacidad</Link>.
+              La información técnica de los servicios (tipo, fecha, producto, observaciones, fotos) es propiedad de {NOMBRE_LEGAL} en su calidad de prestador del servicio de reparación y mantenimiento. El titular del vehículo tiene derecho a acceder a esta información conforme a los derechos ARCO detallados en la <Link to={ROUTES.PRIVACIDAD} className="text-red hover:text-red-bright">Política de Privacidad</Link>.
             </p>
           </section>
 
