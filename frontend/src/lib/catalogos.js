@@ -33,7 +33,7 @@ export const TIPOS_SERVICIO = [
   'Equipamiento',
   'Servicio de Mecánica General',
   'Rotación de Neumáticos',
-  'Reparación Tren Delantero',
+  'Reparación de Tren Delantero',
   'Reparación de pinchadura',
   'Otro',
 ]
