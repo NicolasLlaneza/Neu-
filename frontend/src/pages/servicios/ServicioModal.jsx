@@ -10,6 +10,7 @@ import { ArrowLeft, AlertCircle, Plus, Loader2, Lock } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
 import { normalizarPatente, detectarTipoPatente, MAX_LEN_PATENTE } from '@/lib/patente'
+import { TIPOS_SERVICIO, ROLES } from '@/lib/catalogos'
 import { normalizarTelefonoAR } from '@/lib/telefono'
 import { normalizarNombre, normalizarEmail } from '@/lib/texto'
 import { uploadPendingFotos } from '@/lib/fotosServicio'
@@ -38,19 +39,6 @@ function FotoGalleryFallback() {
   )
 }
 
-const TIPOS_SERVICIO = [
-  'Alineación',
-  'Alineación y Balanceo',
-  'Balanceo',
-  'Cambio de filtros y aceite',
-  'Equipamiento',
-  'Servicio de Mecánica General',
-  'Rotación de Neumáticos',
-  'Reparación Tren Delantero',
-  'Reparación de pinchadura',
-  'Otro',
-]
-
 
 function hoy() {
   return new Date().toISOString().split('T')[0]
@@ -59,7 +47,7 @@ function hoy() {
 // ─── Formulario ────────────────────────────────────────────────────────
 export default function ServicioModal({ servicio, vehiculos, clientes, onSave, onServicioCreated, onClose }) {
   const { profile } = useAuth()
-  const esSuperadmin = profile?.rol === 'superadmin'
+  const esSuperadmin = profile?.rol === ROLES.SUPERADMIN
   // Los campos que son evidencia del trabajo (fecha, kilometraje, importe,
   // tipo de servicio) quedan inmutables para admins normales una vez
   // creado el servicio. Solo un superadmin puede corregirlos. Al crear

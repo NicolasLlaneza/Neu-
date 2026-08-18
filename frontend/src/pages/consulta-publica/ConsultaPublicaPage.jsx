@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import { Search, CheckCircle, XCircle, ChevronDown, Phone, MessageCircle, MapPin, Clock } from 'lucide-react'
 import { Turnstile } from '@marsidev/react-turnstile'
 import { supabase } from '@/lib/supabase'
-import { MAX_LEN_PATENTE } from '@/lib/patente'
+import { MAX_LEN_PATENTE, tipoLabelsLargos as tipoLabels } from '@/lib/patente'
 import { formatearKm } from '@/lib/formato'
 import { WHATSAPP_BASE_URL } from '@/lib/whatsapp'
 import { CONTACTO_TALLER } from '@/lib/empresa'
@@ -12,11 +12,6 @@ import Button from '@/components/Button'
 
 const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY
 
-const tipoLabels = {
-  'auto-viejo': 'Automóvil',
-  'auto-nuevo': 'Automóvil',
-  'moto-nueva': 'Motocicleta',
-}
 
 // step: 'search' → 'confirm' → 'results'
 

@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
 import { notificar } from '@/lib/notificar'
 import { emitirVehiculoActualizado } from '@/lib/eventos'
-import { normalizarPatente, detectarTipoPatente, MAX_LEN_PATENTE } from '@/lib/patente'
+import { normalizarPatente, detectarTipoPatente, MAX_LEN_PATENTE, tipoLabelsCortos as tipoLabels } from '@/lib/patente'
 import { formatearKm } from '@/lib/formato'
 import { normalizarNombre } from '@/lib/texto'
 import Button from '@/components/Button'
@@ -14,12 +14,6 @@ import Modal from '@/components/Modal'
 import DataTable from '@/components/DataTable'
 import EmptyState from '@/components/EmptyState'
 import TableSkeleton from '@/components/TableSkeleton'
-
-const tipoLabels = {
-  'auto-viejo': 'Auto',
-  'auto-nuevo': 'Auto',
-  'moto-nueva': 'Moto',
-}
 
 // ─── Formulario ────────────────────────────────────────────────────────
 function VehiculoModal({ vehiculo, clientes, onSave, onClose }) {

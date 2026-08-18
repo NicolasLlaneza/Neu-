@@ -14,6 +14,7 @@ import logger from '@/lib/logger'
 import { COLORS } from '@/lib/colors'
 import { formatearARS } from '@/lib/formato'
 import { ROUTES } from '@/lib/routes'
+import { ROLES } from '@/lib/catalogos'
 import EnviarWhatsAppModal from '@/components/EnviarWhatsAppModal'
 import Button from '@/components/Button'
 
@@ -173,7 +174,7 @@ async function cargarPanel(esSuperadmin) {
 
 export default function InicioPage() {
   const { profile } = useAuth()
-  const esSuperadmin = profile?.rol === 'superadmin'
+  const esSuperadmin = profile?.rol === ROLES.SUPERADMIN
   const [sendingNotif, setSendingNotif] = useState(null)
 
   // Cache SWR: si volvimos a esta página en menos de 30s, muestra datos al

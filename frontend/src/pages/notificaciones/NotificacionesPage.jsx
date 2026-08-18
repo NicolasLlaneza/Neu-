@@ -17,6 +17,7 @@ import { EVENTOS, suscribirseA, emitirNotifActualizada } from '@/lib/eventos'
 
 import { estadoNotificacion as estadoConfig } from '@/lib/badges'
 import { NOMBRE_MARCA } from '@/lib/empresa'
+import { CANALES } from '@/lib/catalogos'
 
 // Horario permitido para programar notificaciones: coincide con el horario
 // de atención del taller. Fuera de este rango nadie va a estar disponible
@@ -114,7 +115,7 @@ function NotificacionModal({ notificacion, clientes, onSave, onClose }) {
       cliente_id:  form.cliente_id,
       servicio_id: form.servicio_id || null,
       motivo:      form.motivo,
-      canal:       'WhatsApp',
+      canal:       CANALES.WHATSAPP,
       mensaje:     form.mensaje.trim(),
       fecha_envio: form.fecha_envio,
       hora_envio:  form.hora_envio,

@@ -6,6 +6,7 @@ import { notificar } from '@/lib/notificar'
 import { emitirClienteActualizado } from '@/lib/eventos'
 import { normalizarNombre, normalizarEmail } from '@/lib/texto'
 import { normalizarTelefonoAR } from '@/lib/telefono'
+import { CANALES, CANALES_LIST } from '@/lib/catalogos'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
@@ -47,7 +48,7 @@ function ClienteModal({ cliente, onSave, onClose }) {
     contacto_nombre: cliente?.contacto_nombre ?? '',
     telefono:        cliente?.telefono        ?? '',
     email:           cliente?.email           ?? '',
-    canal_preferido: cliente?.canal_preferido ?? 'WhatsApp',
+    canal_preferido: cliente?.canal_preferido ?? CANALES.WHATSAPP,
     estado:          cliente?.estado          ?? 'nuevo',
     acepta_whatsapp: cliente?.acepta_whatsapp ?? true,
   })
@@ -162,9 +163,7 @@ function ClienteModal({ cliente, onSave, onClose }) {
           value={form.canal_preferido}
           onChange={e => set('canal_preferido', e.target.value)}
         >
-          <option value="WhatsApp">WhatsApp</option>
-          <option value="Email">Email</option>
-          <option value="Ambos">Ambos</option>
+          {CANALES_LIST.map(c => <option key={c} value={c}>{c}</option>)}
         </Select>
         <Select
           label="Estado"
