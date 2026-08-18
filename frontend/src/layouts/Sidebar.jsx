@@ -2,13 +2,14 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { Users, Car, Wrench, Bell, LogOut, UserCog, LayoutDashboard } from 'lucide-react'
 import Logo from '@/components/Logo'
 import { supabase } from '@/lib/supabase'
+import { ROUTES } from '@/lib/routes'
 
 const navItems = [
-  { to: '/inicio',         icon: LayoutDashboard, label: 'Inicio'         },
-  { to: '/clientes',       icon: Users,           label: 'Clientes'       },
-  { to: '/vehiculos',      icon: Car,             label: 'Vehículos'      },
-  { to: '/servicios',      icon: Wrench,          label: 'Servicios'      },
-  { to: '/notificaciones', icon: Bell,            label: 'Notificaciones' },
+  { to: ROUTES.INICIO,         icon: LayoutDashboard, label: 'Inicio'         },
+  { to: ROUTES.CLIENTES,       icon: Users,           label: 'Clientes'       },
+  { to: ROUTES.VEHICULOS,      icon: Car,             label: 'Vehículos'      },
+  { to: ROUTES.SERVICIOS,      icon: Wrench,          label: 'Servicios'      },
+  { to: ROUTES.NOTIFICACIONES, icon: Bell,            label: 'Notificaciones' },
 ]
 
 const settingsItems = [
@@ -17,7 +18,7 @@ const settingsItems = [
   // La página de Usuarios es visible para todos porque contiene el form de
   // cambio de contraseña propia; el bloque de gestión de usuarios se
   // renderiza dentro solo si es superadmin.
-  { to: '/config/usuarios', icon: UserCog,  label: 'Usuarios' },
+  { to: ROUTES.CONFIG_USUARIOS, icon: UserCog,  label: 'Usuarios' },
 ]
 
 export default function Sidebar() {
@@ -25,7 +26,7 @@ export default function Sidebar() {
 
   async function handleLogout() {
     await supabase.auth.signOut()
-    navigate('/login', { replace: true })
+    navigate(ROUTES.LOGIN, { replace: true })
   }
 
   return (

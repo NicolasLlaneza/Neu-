@@ -6,6 +6,9 @@
 // La versión "compact" queda como texto para conservar legibilidad en el
 // topbar mobile, respetando la tipografía Montserrat del manual.
 
+import { COLORS } from '@/lib/colors'
+import { NOMBRE_MARCA } from '@/lib/empresa'
+
 const LOGO_URL = '/logo.png'
 
 export default function Logo({ className = '', compact = false }) {
@@ -16,8 +19,8 @@ export default function Logo({ className = '', compact = false }) {
         className={className}
         style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 900, letterSpacing: '0.05em', lineHeight: 1 }}
       >
-        <span style={{ color: '#cccccc', fontSize: '1.5rem' }}>NEU</span>
-        <span style={{ color: '#910000', fontSize: '1.5rem' }}>+</span>
+        <span style={{ color: COLORS.textPrimary, fontSize: '1.5rem' }}>NEU</span>
+        <span style={{ color: COLORS.red, fontSize: '1.5rem' }}>+</span>
       </div>
     )
   }
@@ -26,7 +29,7 @@ export default function Logo({ className = '', compact = false }) {
   return (
     <img
       src={LOGO_URL}
-      alt="NEU+ Neumáticos"
+      alt={NOMBRE_MARCA}
       className={`w-40 sm:w-48 h-auto ${className}`}
       draggable={false}
     />

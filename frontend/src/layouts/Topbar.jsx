@@ -2,15 +2,16 @@ import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { LogOut } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
+import { ROUTES } from '@/lib/routes'
 import Logo from '@/components/Logo'
 
 const titles = {
-  '/inicio':          'Inicio',
-  '/clientes':        'Clientes',
-  '/vehiculos':       'Vehículos',
-  '/servicios':       'Servicios',
-  '/notificaciones':  'Notificaciones',
-  '/config/usuarios': 'Usuarios',
+  [ROUTES.INICIO]:          'Inicio',
+  [ROUTES.CLIENTES]:        'Clientes',
+  [ROUTES.VEHICULOS]:       'Vehículos',
+  [ROUTES.SERVICIOS]:       'Servicios',
+  [ROUTES.NOTIFICACIONES]:  'Notificaciones',
+  [ROUTES.CONFIG_USUARIOS]: 'Usuarios',
 }
 
 export default function Topbar() {
@@ -22,7 +23,7 @@ export default function Topbar() {
 
   async function handleLogout() {
     await supabase.auth.signOut()
-    navigate('/login', { replace: true })
+    navigate(ROUTES.LOGIN, { replace: true })
   }
 
   return (
@@ -37,7 +38,7 @@ export default function Topbar() {
       <div className="flex items-center gap-3">
         {/* Desktop: nombre del perfil clickeable → cuenta */}
         <Link
-          to="/config/usuarios"
+          to={ROUTES.CONFIG_USUARIOS}
           className="hidden md:block text-xs text-gray-200 hover:text-gray-100 transition-colors"
           title="Mi cuenta"
         >

@@ -1,4 +1,5 @@
 import { Check, Circle } from 'lucide-react'
+import { MIN_PASSWORD } from '@/lib/passwordRules'
 
 // Reglas de composición de contraseña. Se usan en el form de "Mi contraseña"
 // y en el modal de alta de usuarios para dar feedback en vivo mientras la
@@ -9,7 +10,7 @@ import { Check, Circle } from 'lucide-react'
 // Ese overlap garantiza que la contraseña temporal auto-generada siempre
 // cumple todas las reglas de este componente.
 export const REGLAS = [
-  { id: 'largo',    label: 'Al menos 8 caracteres',  test: p => (p ?? '').length >= 8  },
+  { id: 'largo',    label: `Al menos ${MIN_PASSWORD} caracteres`, test: p => (p ?? '').length >= MIN_PASSWORD },
   { id: 'mayus',    label: 'Una mayúscula (A-Z)',    test: p => /[A-Z]/.test(p ?? '')    },
   { id: 'minus',    label: 'Una minúscula (a-z)',    test: p => /[a-z]/.test(p ?? '')    },
   { id: 'numero',   label: 'Un número (0-9)',        test: p => /[0-9]/.test(p ?? '')    },

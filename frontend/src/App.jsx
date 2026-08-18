@@ -4,6 +4,7 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import ProtectedRoute from '@/routes/ProtectedRoute'
 import AppLayout from '@/layouts/AppLayout'
 import { lazyWithRetry } from '@/lib/lazyWithRetry'
+import { ROUTES } from '@/lib/routes'
 
 // El login se carga siempre (es la primera pantalla), así que va directo.
 import LoginPage from '@/pages/auth/LoginPage'
@@ -43,30 +44,30 @@ export default function App() {
         <Suspense fallback={<Cargando />}>
           <Routes>
             {/* Rutas públicas */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/recuperar-password" element={<RecuperarPasswordPage />} />
-            <Route path="/nueva-password" element={<NuevaPasswordPage />} />
-            <Route path="/consulta" element={<ConsultaPublicaPage />} />
-            <Route path="/privacidad" element={<PrivacidadPage />} />
-            <Route path="/terminos" element={<TerminosPage />} />
+            <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+            <Route path={ROUTES.RECUPERAR_PASSWORD} element={<RecuperarPasswordPage />} />
+            <Route path={ROUTES.NUEVA_PASSWORD} element={<NuevaPasswordPage />} />
+            <Route path={ROUTES.CONSULTA} element={<ConsultaPublicaPage />} />
+            <Route path={ROUTES.PRIVACIDAD} element={<PrivacidadPage />} />
+            <Route path={ROUTES.TERMINOS} element={<TerminosPage />} />
 
             {/* Rutas protegidas con layout */}
-            <Route path="/inicio" element={
+            <Route path={ROUTES.INICIO} element={
               <ProtectedRoute><AppLayout><InicioPage /></AppLayout></ProtectedRoute>
             } />
-            <Route path="/clientes" element={
+            <Route path={ROUTES.CLIENTES} element={
               <ProtectedRoute><AppLayout><ClientesPage /></AppLayout></ProtectedRoute>
             } />
-            <Route path="/vehiculos" element={
+            <Route path={ROUTES.VEHICULOS} element={
               <ProtectedRoute><AppLayout><VehiculosPage /></AppLayout></ProtectedRoute>
             } />
-            <Route path="/servicios" element={
+            <Route path={ROUTES.SERVICIOS} element={
               <ProtectedRoute><AppLayout><ServiciosPage /></AppLayout></ProtectedRoute>
             } />
-            <Route path="/notificaciones" element={
+            <Route path={ROUTES.NOTIFICACIONES} element={
               <ProtectedRoute><AppLayout><NotificacionesPage /></AppLayout></ProtectedRoute>
             } />
-            <Route path="/config/usuarios" element={
+            <Route path={ROUTES.CONFIG_USUARIOS} element={
               <ProtectedRoute><AppLayout><UsuariosPage /></AppLayout></ProtectedRoute>
             } />
 
@@ -75,8 +76,8 @@ export default function App() {
                 la raíz cae directo en la consulta pública. El resto va al panel. */}
             <Route path="/" element={
               typeof window !== 'undefined' && window.location.hostname === 'consulta.grupocalper.com'
-                ? <Navigate to="/consulta" replace />
-                : <Navigate to="/inicio" replace />
+                ? <Navigate to={ROUTES.CONSULTA} replace />
+                : <Navigate to={ROUTES.INICIO} replace />
             } />
             {/* Catch-all: cualquier URL no reconocida vuelve a la raíz */}
             <Route path="*" element={<Navigate to="/" replace />} />

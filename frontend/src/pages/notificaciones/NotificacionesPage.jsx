@@ -16,6 +16,8 @@ import TableSkeleton from '@/components/TableSkeleton'
 import { EVENTOS, suscribirseA, emitirNotifActualizada } from '@/lib/eventos'
 
 import { estadoNotificacion as estadoConfig } from '@/lib/badges'
+import { NOMBRE_MARCA } from '@/lib/empresa'
+import { CANALES } from '@/lib/catalogos'
 
 // Horario permitido para programar notificaciones: coincide con el horario
 // de atención del taller. Fuera de este rango nadie va a estar disponible
@@ -34,12 +36,12 @@ function hoyISO() {
 // Personaliza el saludo inicial según el tipo de cliente.
 // Persona: usa el primer nombre. Empresa: saluda al equipo con la razón social.
 function mensajeInicial(cliente) {
-  if (!cliente) return `Hola! 👋 Te contactamos desde *NEU+ Neumáticos*.`
+  if (!cliente) return `Hola! 👋 Te contactamos desde *${NOMBRE_MARCA}*.`
   if (cliente.tipo === 'empresa') {
-    return `Hola equipo de ${cliente.nombre}! 👋 Los contactamos desde *NEU+ Neumáticos*.`
+    return `Hola equipo de ${cliente.nombre}! 👋 Los contactamos desde *${NOMBRE_MARCA}*.`
   }
   const primerNombre = cliente.nombre.split(' ')[0]
-  return `Hola ${primerNombre}! 👋 Te contactamos desde *NEU+ Neumáticos*.`
+  return `Hola ${primerNombre}! 👋 Te contactamos desde *${NOMBRE_MARCA}*.`
 }
 
 // ─── Formulario ─────────────────────────────────────────────────────────
@@ -113,7 +115,7 @@ function NotificacionModal({ notificacion, clientes, onSave, onClose }) {
       cliente_id:  form.cliente_id,
       servicio_id: form.servicio_id || null,
       motivo:      form.motivo,
-      canal:       'WhatsApp',
+      canal:       CANALES.WHATSAPP,
       mensaje:     form.mensaje.trim(),
       fecha_envio: form.fecha_envio,
       hora_envio:  form.hora_envio,
@@ -325,7 +327,11 @@ export default function NotificacionesPage() {
               {pendientes > 0 && (
                 <span
                   className="ml-2 px-2 py-0.5 rounded text-xs font-semibold"
-                  style={{ color: '#d97706', backgroundColor: '#d9780622', border: '1px solid #d9780644' }}
+                  style={{
+                    color: estadoConfig.pendiente.color,
+                    backgroundColor: `${estadoConfig.pendiente.color}22`,
+                    border: `1px solid ${estadoConfig.pendiente.color}44`,
+                  }}
                 >
                   {pendientes} pendiente{pendientes !== 1 ? 's' : ''}
                 </span>

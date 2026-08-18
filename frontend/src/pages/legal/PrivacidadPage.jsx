@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import Logo from '@/components/Logo'
+import { NOMBRE_MARCA, NOMBRE_LEGAL, EMAIL_CONTACTO } from '@/lib/empresa'
 
 export default function PrivacidadPage() {
   return (
@@ -28,14 +29,14 @@ export default function PrivacidadPage() {
           <section>
             <h2 className="text-gray-100 text-base font-semibold uppercase tracking-wider mb-2">1. Responsable del tratamiento</h2>
             <p>
-              NEU+ Neumáticos (razón social: Calper SA) es responsable del tratamiento de los datos
+              {NOMBRE_MARCA} (razón social: {NOMBRE_LEGAL}) es responsable del tratamiento de los datos
               personales que se cargan y gestionan a través de esta aplicación, conforme a la
               Ley N° 25.326 de Protección de Datos Personales de la República Argentina.
             </p>
             <p className="mt-2">
               Contacto:{' '}
-              <a href="mailto:info@neumasneumaticos.com.ar" className="text-red hover:text-red-bright">
-                info@neumasneumaticos.com.ar
+              <a href={`mailto:${EMAIL_CONTACTO}`} className="text-red hover:text-red-bright">
+                {EMAIL_CONTACTO}
               </a>
             </p>
           </section>

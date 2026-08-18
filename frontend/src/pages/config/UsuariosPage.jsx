@@ -12,8 +12,9 @@ import DataTable from '@/components/DataTable'
 import TableSkeleton from '@/components/TableSkeleton'
 import PasswordRequirements, { primerErrorPassword } from '@/components/PasswordRequirements'
 import { normalizarNombre, normalizarEmail } from '@/lib/texto'
-
-const MIN_PASSWORD = 8
+import { NOMBRE_MARCA } from '@/lib/empresa'
+import { MIN_PASSWORD } from '@/lib/passwordRules'
+import { ROLES } from '@/lib/catalogos'
 
 // Genera una contraseña temporal legible pero fuerte.
 // Se la dicta el superadmin a la persona en el momento del alta.
@@ -192,7 +193,7 @@ function NuevoUsuarioModal({ onCreated, onClose }) {
   const [form, setForm] = useState({
     nombre:   '',
     email:    '',
-    rol:      'admin',
+    rol:      ROLES.ADMIN,
     password: generarPassword(),
   })
   const [errors, setErrors] = useState({})
@@ -206,7 +207,7 @@ function NuevoUsuarioModal({ onCreated, onClose }) {
   }
 
   function copiarCredenciales() {
-    const texto = `NEU+ — Acceso\nEmail: ${form.email}\nContraseña: ${form.password}`
+    const texto = `${NOMBRE_MARCA} — Acceso\nEmail: ${form.email}\nContraseña: ${form.password}`
     navigator.clipboard.writeText(texto)
     setCopiado(true)
     setTimeout(() => setCopiado(false), 2000)
@@ -315,15 +316,15 @@ function NuevoUsuarioModal({ onCreated, onClose }) {
           value={form.email}
           onChange={e => set('email', e.target.value)}
           error={errors.email}
-          placeholder="ana@neumasneumaticos.com.ar"
+          placeholder="nombre@neumasneumaticos.com.ar"
         />
         <Select
           label="Rol"
           value={form.rol}
           onChange={e => set('rol', e.target.value)}
         >
-          <option value="admin">Admin — carga y consulta datos</option>
-          <option value="superadmin">Superadmin — además gestiona usuarios</option>
+          <option value={ROLES.ADMIN}>Admin — carga y consulta datos</option>
+          <option value={ROLES.SUPERADMIN}>Superadmin — además gestiona usuarios</option>
         </Select>
 
         <div>
@@ -369,7 +370,7 @@ function GestionUsuariosSection({ profile }) {
   const [error, setError]         = useState(null)
   const [tab, setTab]             = useState('activos')  // 'activos' | 'inactivos' | 'todos'
 
-  const esSuperadmin = profile?.rol === 'superadmin'
+  const esSuperadmin = profile?.rol === ROLES.SUPERADMIN
 
   useEffect(() => { fetchUsuarios() }, [])
 
@@ -448,7 +449,7 @@ function GestionUsuariosSection({ profile }) {
 
   const totalActivos     = usuarios.filter(u => u.activo).length
   const totalInactivos   = usuarios.filter(u => !u.activo).length
-  const totalSuperadmins = usuarios.filter(u => u.rol === 'superadmin' && u.activo).length
+  const totalSuperadmins = usuarios.filter(u => u.rol === ROLES.SUPERADMIN && u.activo).length
 
   const usuariosFiltrados = tab === 'activos'
     ? usuarios.filter(u => u.activo)
@@ -539,8 +540,8 @@ function GestionUsuariosSection({ profile }) {
                       onChange={e => cambiarRol(u, e.target.value)}
                       className="bg-dark-300 border border-dark-400 text-gray-100 text-xs rounded px-2 py-1 outline-none focus:border-red transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <option value="admin">Admin</option>
-                      <option value="superadmin">Superadmin</option>
+                      <option value={ROLES.ADMIN}>Admin</option>
+                      <option value={ROLES.SUPERADMIN}>Superadmin</option>
                     </select>
                   ) : (
                     <span className="text-gray-200 text-xs uppercase tracking-wider">

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { ROUTES } from '@/lib/routes'
 
 const INACTIVITY_LIMIT = 30 * 60 * 1000  // 30 minutos sin actividad → cierra sesión
 const WARNING_BEFORE   =  1 * 60 * 1000  // avisa 1 minuto antes
@@ -16,7 +17,7 @@ export function useInactivityTimeout() {
   const logout = useCallback(async () => {
     setShowWarning(false)
     await supabase.auth.signOut()
-    navigate('/login', { replace: true })
+    navigate(ROUTES.LOGIN, { replace: true })
   }, [navigate])
 
   const resetTimer = useCallback(() => {

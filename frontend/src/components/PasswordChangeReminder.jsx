@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext'
+import { ROUTES } from '@/lib/routes'
 
 // Cuando el usuario logueado sigue usando la contraseña temporal, la app lo
 // obliga a cambiarla:
@@ -28,7 +29,7 @@ export default function PasswordChangeReminder() {
         duration: Infinity,
         action:   {
           label:   'Cambiar ahora',
-          onClick: () => navigate('/config/usuarios'),
+          onClick: () => navigate(ROUTES.CONFIG_USUARIOS),
         },
       })
     } else if (mostradoRef.current) {
@@ -43,7 +44,7 @@ export default function PasswordChangeReminder() {
   // no compite visualmente con el banner amarillo del propio formulario.
   useEffect(() => {
     if (!profile?.debe_cambiar_password) return
-    if (location.pathname === '/config/usuarios') {
+    if (location.pathname === ROUTES.CONFIG_USUARIOS) {
       toast.dismiss(TOAST_ID)
       mostradoRef.current = false
     }
