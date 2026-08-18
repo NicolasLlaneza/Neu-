@@ -16,6 +16,7 @@ import TableSkeleton from '@/components/TableSkeleton'
 import { EVENTOS, suscribirseA, emitirNotifActualizada } from '@/lib/eventos'
 
 import { estadoNotificacion as estadoConfig } from '@/lib/badges'
+import { NOMBRE_MARCA } from '@/lib/empresa'
 
 // Horario permitido para programar notificaciones: coincide con el horario
 // de atención del taller. Fuera de este rango nadie va a estar disponible
@@ -34,12 +35,12 @@ function hoyISO() {
 // Personaliza el saludo inicial según el tipo de cliente.
 // Persona: usa el primer nombre. Empresa: saluda al equipo con la razón social.
 function mensajeInicial(cliente) {
-  if (!cliente) return `Hola! 👋 Te contactamos desde *NEU+ Neumáticos*.`
+  if (!cliente) return `Hola! 👋 Te contactamos desde *${NOMBRE_MARCA}*.`
   if (cliente.tipo === 'empresa') {
-    return `Hola equipo de ${cliente.nombre}! 👋 Los contactamos desde *NEU+ Neumáticos*.`
+    return `Hola equipo de ${cliente.nombre}! 👋 Los contactamos desde *${NOMBRE_MARCA}*.`
   }
   const primerNombre = cliente.nombre.split(' ')[0]
-  return `Hola ${primerNombre}! 👋 Te contactamos desde *NEU+ Neumáticos*.`
+  return `Hola ${primerNombre}! 👋 Te contactamos desde *${NOMBRE_MARCA}*.`
 }
 
 // ─── Formulario ─────────────────────────────────────────────────────────

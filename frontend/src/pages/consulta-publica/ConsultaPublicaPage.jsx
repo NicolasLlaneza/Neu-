@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { MAX_LEN_PATENTE } from '@/lib/patente'
 import { formatearKm } from '@/lib/formato'
 import { WHATSAPP_BASE_URL } from '@/lib/whatsapp'
+import { CONTACTO_TALLER } from '@/lib/empresa'
 import Logo from '@/components/Logo'
 import Button from '@/components/Button'
 
@@ -14,16 +15,6 @@ const tipoLabels = {
   'auto-viejo': 'Automóvil',
   'auto-nuevo': 'Automóvil',
   'moto-nueva': 'Motocicleta',
-}
-
-// Datos de contacto del taller que se muestran al pie de la consulta pública.
-// [COMPLETAR] con los datos reales de Grupo Calper cuando Nicolás los pase.
-// Un valor null/'' oculta la fila correspondiente.
-const CONTACTO_TALLER = {
-  telefono:  '+54 9 2612 70-0011',                     // click-to-call
-  whatsapp:  '5492612700011',                          // número sin +, se usa en wa.me/{numero}
-  direccion: 'Bandera de los Andes esquina Allayme',   // muestra sin link (se puede sumar Google Maps luego)
-  horarios:  'Lunes a viernes de 9 a 18 hs',
 }
 
 // step: 'search' → 'confirm' → 'results'

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import Logo from '@/components/Logo'
+import { NOMBRE_MARCA, NOMBRE_LEGAL } from '@/lib/empresa'
 
 export default function TerminosPage() {
   return (
@@ -28,7 +29,7 @@ export default function TerminosPage() {
           <section>
             <h2 className="text-gray-100 text-base font-semibold uppercase tracking-wider mb-2">1. Objeto</h2>
             <p>
-              Estos términos regulan el uso de la aplicación web NEU+ Neumáticos, operada por Calper SA,
+              Estos términos regulan el uso de la aplicación web {NOMBRE_MARCA}, operada por {NOMBRE_LEGAL},
               como herramienta interna de gestión de servicios y comunicación con clientes del taller.
             </p>
           </section>
@@ -37,7 +38,7 @@ export default function TerminosPage() {
             <h2 className="text-gray-100 text-base font-semibold uppercase tracking-wider mb-2">2. Usuarios</h2>
             <p>La aplicación tiene dos tipos de usuarios:</p>
             <ul className="list-disc list-inside space-y-1 mt-2">
-              <li><strong className="text-gray-100">Administradores del taller:</strong> personal autorizado por Calper SA que gestiona clientes, vehículos, servicios y notificaciones.</li>
+              <li><strong className="text-gray-100">Administradores del taller:</strong> personal autorizado por {NOMBRE_LEGAL} que gestiona clientes, vehículos, servicios y notificaciones.</li>
               <li><strong className="text-gray-100">Clientes finales:</strong> propietarios de vehículos que consultan su historial ingresando la patente en la sección pública.</li>
             </ul>
           </section>
@@ -55,7 +56,7 @@ export default function TerminosPage() {
           <section>
             <h2 className="text-gray-100 text-base font-semibold uppercase tracking-wider mb-2">4. Titularidad de la información</h2>
             <p>
-              La información técnica de los servicios (tipo, fecha, producto, observaciones, fotos) es propiedad de Calper SA en su calidad de prestador del servicio de reparación y mantenimiento. El titular del vehículo tiene derecho a acceder a esta información conforme a los derechos ARCO detallados en la <Link to="/privacidad" className="text-red hover:text-red-bright">Política de Privacidad</Link>.
+              La información técnica de los servicios (tipo, fecha, producto, observaciones, fotos) es propiedad de {NOMBRE_LEGAL} en su calidad de prestador del servicio de reparación y mantenimiento. El titular del vehículo tiene derecho a acceder a esta información conforme a los derechos ARCO detallados en la <Link to="/privacidad" className="text-red hover:text-red-bright">Política de Privacidad</Link>.
             </p>
           </section>
 
@@ -72,7 +73,7 @@ export default function TerminosPage() {
               La información mostrada en la aplicación es referencial. Las recomendaciones de mantenimiento o cambios de piezas dependen del criterio profesional del taller.
             </p>
             <p className="mt-2">
-              Calper SA no garantiza disponibilidad ininterrumpida del servicio ni se hace responsable por interrupciones causadas por proveedores externos (hosting, WhatsApp, redes).
+              {NOMBRE_LEGAL} no garantiza disponibilidad ininterrumpida del servicio ni se hace responsable por interrupciones causadas por proveedores externos (hosting, WhatsApp, redes).
             </p>
           </section>
 

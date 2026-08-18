@@ -7,6 +7,7 @@
 // topbar mobile, respetando la tipografía Montserrat del manual.
 
 import { COLORS } from '@/lib/colors'
+import { NOMBRE_MARCA } from '@/lib/empresa'
 
 const LOGO_URL = '/logo.png'
 
@@ -28,7 +29,7 @@ export default function Logo({ className = '', compact = false }) {
   return (
     <img
       src={LOGO_URL}
-      alt="NEU+ Neumáticos"
+      alt={NOMBRE_MARCA}
       className={`w-40 sm:w-48 h-auto ${className}`}
       draggable={false}
     />

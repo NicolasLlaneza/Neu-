@@ -12,6 +12,7 @@ import DataTable from '@/components/DataTable'
 import TableSkeleton from '@/components/TableSkeleton'
 import PasswordRequirements, { primerErrorPassword } from '@/components/PasswordRequirements'
 import { normalizarNombre, normalizarEmail } from '@/lib/texto'
+import { NOMBRE_MARCA } from '@/lib/empresa'
 
 const MIN_PASSWORD = 8
 
@@ -206,7 +207,7 @@ function NuevoUsuarioModal({ onCreated, onClose }) {
   }
 
   function copiarCredenciales() {
-    const texto = `NEU+ — Acceso\nEmail: ${form.email}\nContraseña: ${form.password}`
+    const texto = `${NOMBRE_MARCA} — Acceso\nEmail: ${form.email}\nContraseña: ${form.password}`
     navigator.clipboard.writeText(texto)
     setCopiado(true)
     setTimeout(() => setCopiado(false), 2000)
