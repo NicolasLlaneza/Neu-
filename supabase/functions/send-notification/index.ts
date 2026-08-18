@@ -17,6 +17,7 @@
 import { serve }        from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { jsonResponse, preflight } from '../_shared/cors.ts'
+import { normalizarTelefonoAR } from '../_shared/telefono.ts'
 
 const ACCESS_TOKEN     = Deno.env.get('WHATSAPP_ACCESS_TOKEN')!
 const INTERNAL_SECRET  = Deno.env.get('INTERNAL_SECRET')!
@@ -96,9 +97,12 @@ serve(async (req: Request) => {
     return json({ error: 'Cliente no autorizó recibir WhatsApp' }, 403)
   }
 
-  // Normalizar teléfono a formato internacional sin +
-  // Ej: "+54 9 11 1234 5678" → "5491112345678"
-  const telefono = notif.clientes.telefono.replace(/\D/g, '')
+  // Normalizar teléfono al formato E.164 sin '+' que exige WhatsApp
+  // Business API. Antes acá se hacía sólo .replace(/\D/g, ''), lo que
+  // convertía "2612345678" (10 dígitos guardados por el taller sin
+  // prefijo) en "2612345678" — un número inválido que Meta rechaza.
+  // normalizarTelefonoAR garantiza el "549" al frente en todos los casos.
+  const telefono = normalizarTelefonoAR(notif.clientes.telefono)
 
   try {
     const response = await fetch(whatsappApiUrl, {
