@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
 import { notificar } from '@/lib/notificar'
 import { emitirVehiculoActualizado } from '@/lib/eventos'
-import { normalizarPatente, detectarTipoPatente } from '@/lib/patente'
+import { normalizarPatente, detectarTipoPatente, MAX_LEN_PATENTE } from '@/lib/patente'
 import { normalizarNombre } from '@/lib/texto'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
@@ -95,7 +95,7 @@ function VehiculoModal({ vehiculo, clientes, onSave, onClose }) {
               onChange={e => handlePatente(e.target.value)}
               error={errors.patente}
               placeholder="AB123CD"
-              maxLength={7}
+              maxLength={MAX_LEN_PATENTE}
             />
             {form.tipo_patente && (
               <p className="text-xs text-gray-200 mt-1">

@@ -9,7 +9,7 @@ import { useState, useEffect, useCallback, Suspense } from 'react'
 import { ArrowLeft, AlertCircle, Plus, Loader2, Lock } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
-import { normalizarPatente, detectarTipoPatente } from '@/lib/patente'
+import { normalizarPatente, detectarTipoPatente, MAX_LEN_PATENTE } from '@/lib/patente'
 import { normalizarTelefonoAR } from '@/lib/telefono'
 import { normalizarNombre, normalizarEmail } from '@/lib/texto'
 import { uploadPendingFotos } from '@/lib/fotosServicio'
@@ -349,7 +349,7 @@ export default function ServicioModal({ servicio, vehiculos, clientes, onSave, o
                   onChange={e => handlePatenteNueva(e.target.value)}
                   error={errors.nv_patente}
                   placeholder="AB123CD"
-                  maxLength={7}
+                  maxLength={MAX_LEN_PATENTE}
                 />
                 {nuevoVehiculo.tipo_patente && (
                   <p className="text-xs text-gray-300 mt-1">

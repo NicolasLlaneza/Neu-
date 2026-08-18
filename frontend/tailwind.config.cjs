@@ -11,6 +11,11 @@ module.exports = {
           DEFAULT: '#910000',
           bright: '#ff0000',
         },
+        // Tokens semánticos — matchear con COLORS en src/lib/colors.js
+        success: '#16a34a',
+        warning: '#d97706',
+        neutral: '#666666',
+        muted:   '#555555',
         dark: {
           DEFAULT: '#0d0d0d',
           50: '#161616',

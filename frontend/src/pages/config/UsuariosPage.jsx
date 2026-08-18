@@ -315,7 +315,7 @@ function NuevoUsuarioModal({ onCreated, onClose }) {
           value={form.email}
           onChange={e => set('email', e.target.value)}
           error={errors.email}
-          placeholder="ana@neumasneumaticos.com.ar"
+          placeholder="nombre@neumasneumaticos.com.ar"
         />
         <Select
           label="Rol"

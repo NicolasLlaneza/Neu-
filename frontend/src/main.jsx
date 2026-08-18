@@ -5,6 +5,7 @@ import App from './App.jsx'
 import './styles/index.css'
 import { initSentry, Sentry } from './lib/sentry'
 import { validarEnv } from './lib/env'
+import { COLORS } from './lib/colors'
 
 // Validar env vars al inicio, antes de renderizar nada:
 // mejor un error explícito acá que fallos oscuros dentro de la app.
@@ -49,9 +50,9 @@ createRoot(document.getElementById('root')).render(
         // encima gracias al z-index más alto — no compiten visualmente.
         toastOptions={{
           style: {
-            background: '#1a1a1a',
-            border: '1px solid #333',
-            color: '#f5f5f5',
+            background: COLORS.darkPanel,
+            border: `1px solid ${COLORS.darkBorder}`,
+            color: COLORS.textPrimary,
           },
         }}
       />

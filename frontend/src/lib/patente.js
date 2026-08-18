@@ -5,6 +5,10 @@
 //   - auto-nuevo:  AB123CD     (2 letras + 3 números + 2 letras) — Mercosur
 //   - moto-nueva:  A123BC      (1 letra + 3 números + 2 letras)
 
+// El formato más largo es AB123CD (7 caracteres). Se usa en los <input>
+// como maxLength para cortar de raíz cualquier ingreso más largo.
+export const MAX_LEN_PATENTE = 7
+
 const REGEX = {
   'auto-nuevo':  /^[A-Z]{2}\d{3}[A-Z]{2}$/,
   'auto-viejo':  /^[A-Z]{3}\d{3}$/,

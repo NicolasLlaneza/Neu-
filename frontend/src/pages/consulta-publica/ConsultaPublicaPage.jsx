@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import { Search, CheckCircle, XCircle, ChevronDown, Phone, MessageCircle, MapPin, Clock } from 'lucide-react'
 import { Turnstile } from '@marsidev/react-turnstile'
 import { supabase } from '@/lib/supabase'
+import { MAX_LEN_PATENTE } from '@/lib/patente'
 import Logo from '@/components/Logo'
 import Button from '@/components/Button'
 
@@ -146,7 +147,7 @@ export default function ConsultaPublicaPage() {
                   setError(null)
                 }}
                 placeholder="Ej: AB123CD"
-                maxLength={7}
+                maxLength={MAX_LEN_PATENTE}
                 className="flex-1 bg-dark-200 border border-dark-400 text-gray-100 text-sm rounded px-4 py-2.5 outline-none focus:border-red transition-colors placeholder:text-gray-300 font-mono tracking-widest uppercase"
               />
               <Button type="submit" loading={loading} disabled={!captchaToken}>

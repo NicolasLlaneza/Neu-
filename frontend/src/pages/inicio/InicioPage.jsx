@@ -11,6 +11,7 @@ import { formatFechaAR, formatFechaHoraAR, estaDentroDeLasProximas } from '@/lib
 import { EVENTOS, suscribirseA } from '@/lib/eventos'
 import { useCachedResource } from '@/hooks/useCachedResource'
 import logger from '@/lib/logger'
+import { COLORS } from '@/lib/colors'
 import EnviarWhatsAppModal from '@/components/EnviarWhatsAppModal'
 import Button from '@/components/Button'
 
@@ -245,7 +246,7 @@ export default function InicioPage() {
           {data.sinCobrar.length > 0 && (
             <AlertaCard
               icon={Receipt}
-              color="#d97706"
+              color={COLORS.warning}
               titulo={`${data.sinCobrar.length} servicio${data.sinCobrar.length !== 1 ? 's' : ''} sin cobrar`}
               detalle={`${money(data.totalSinCobrar)} pendientes de cobro`}
               to="/servicios"
@@ -254,7 +255,7 @@ export default function InicioPage() {
           {data.dormidos.length > 0 && (
             <AlertaCard
               icon={Clock}
-              color="#910000"
+              color={COLORS.danger}
               titulo={`${data.dormidos.length} cliente${data.dormidos.length !== 1 ? 's' : ''} sin volver`}
               detalle={`Sin servicios hace más de ${MESES_INACTIVIDAD} meses`}
               to="/notificaciones"
@@ -263,7 +264,7 @@ export default function InicioPage() {
           {data.notifsFallidas > 0 && (
             <AlertaCard
               icon={BellOff}
-              color="#910000"
+              color={COLORS.danger}
               titulo={`${data.notifsFallidas} notificación${data.notifsFallidas !== 1 ? 'es' : ''} fallida${data.notifsFallidas !== 1 ? 's' : ''}`}
               detalle="Revisá el motivo y reintentá el envío"
               to="/notificaciones"

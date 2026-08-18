@@ -325,7 +325,11 @@ export default function NotificacionesPage() {
               {pendientes > 0 && (
                 <span
                   className="ml-2 px-2 py-0.5 rounded text-xs font-semibold"
-                  style={{ color: '#d97706', backgroundColor: '#d9780622', border: '1px solid #d9780644' }}
+                  style={{
+                    color: estadoConfig.pendiente.color,
+                    backgroundColor: `${estadoConfig.pendiente.color}22`,
+                    border: `1px solid ${estadoConfig.pendiente.color}44`,
+                  }}
                 >
                   {pendientes} pendiente{pendientes !== 1 ? 's' : ''}
                 </span>

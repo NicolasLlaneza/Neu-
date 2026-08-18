@@ -65,7 +65,7 @@ export default function LoginPage() {
               required
               autoComplete="email"
               className="w-full bg-dark-300 border border-dark-400 text-gray-100 text-sm rounded px-3 py-2.5 outline-none focus:border-red transition-colors placeholder:text-gray-300"
-              placeholder="admin@neu.com"
+              placeholder="nombre@neumasneumaticos.com.ar"
             />
           </div>
 
