@@ -16,7 +16,13 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { jsonResponse, preflight } from '../_shared/cors.ts'
 
 const ROLES_VALIDOS = ['admin', 'superadmin']
-const MIN_PASSWORD  = 8    // debe coincidir con la política de Supabase Auth
+// Mínimo de caracteres para la contraseña temporal generada por el
+// superadmin al crear el usuario. TIENE QUE COINCIDIR con:
+//   - frontend/src/lib/passwordRules.js  (MIN_PASSWORD)
+//   - la migración cambiar_mi_password más reciente (018)
+//   - "Minimum password length" en Supabase Dashboard → Auth → Providers → Email
+// Si difieren, hay flujos que rechazan contraseñas que otro flujo aceptó.
+const MIN_PASSWORD  = 8
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return preflight(req)

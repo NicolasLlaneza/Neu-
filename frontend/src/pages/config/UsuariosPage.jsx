@@ -13,8 +13,7 @@ import TableSkeleton from '@/components/TableSkeleton'
 import PasswordRequirements, { primerErrorPassword } from '@/components/PasswordRequirements'
 import { normalizarNombre, normalizarEmail } from '@/lib/texto'
 import { NOMBRE_MARCA } from '@/lib/empresa'
-
-const MIN_PASSWORD = 8
+import { MIN_PASSWORD } from '@/lib/passwordRules'
 
 // Genera una contraseña temporal legible pero fuerte.
 // Se la dicta el superadmin a la persona en el momento del alta.

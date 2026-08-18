@@ -3,10 +3,9 @@ import { useNavigate, Link } from 'react-router-dom'
 import { CheckCircle, AlertTriangle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
+import { MIN_PASSWORD } from '@/lib/passwordRules'
 import Logo from '@/components/Logo'
 import Button from '@/components/Button'
-
-const MIN_PASSWORD = 8
 
 export default function NuevaPasswordPage() {
   const navigate = useNavigate()
