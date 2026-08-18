@@ -3,6 +3,8 @@ import { Search, CheckCircle, XCircle, ChevronDown, Phone, MessageCircle, MapPin
 import { Turnstile } from '@marsidev/react-turnstile'
 import { supabase } from '@/lib/supabase'
 import { MAX_LEN_PATENTE } from '@/lib/patente'
+import { formatearKm } from '@/lib/formato'
+import { WHATSAPP_BASE_URL } from '@/lib/whatsapp'
 import Logo from '@/components/Logo'
 import Button from '@/components/Button'
 
@@ -302,7 +304,7 @@ export default function ConsultaPublicaPage() {
                             <p className="text-gray-200 text-sm md:text-base mt-1 tabular-nums">
                               {s.fecha.split('-').reverse().join('/')}
                               {s.km != null && (
-                                <span className="text-gray-300"> · {s.km.toLocaleString('es-AR')} km</span>
+                                <span className="text-gray-300"> · {formatearKm(s.km)}</span>
                               )}
                             </p>
                           </div>
@@ -389,7 +391,7 @@ export default function ConsultaPublicaPage() {
                   )}
                   {CONTACTO_TALLER.whatsapp && (
                     <a
-                      href={`https://wa.me/${CONTACTO_TALLER.whatsapp}`}
+                      href={`${WHATSAPP_BASE_URL}/${CONTACTO_TALLER.whatsapp}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-3 text-gray-100 hover:text-red-bright transition-colors"

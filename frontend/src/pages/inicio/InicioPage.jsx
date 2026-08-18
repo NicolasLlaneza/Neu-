@@ -12,6 +12,7 @@ import { EVENTOS, suscribirseA } from '@/lib/eventos'
 import { useCachedResource } from '@/hooks/useCachedResource'
 import logger from '@/lib/logger'
 import { COLORS } from '@/lib/colors'
+import { formatearARS } from '@/lib/formato'
 import EnviarWhatsAppModal from '@/components/EnviarWhatsAppModal'
 import Button from '@/components/Button'
 
@@ -38,7 +39,6 @@ function mananaFecha() {
   return d.toISOString().split('T')[0]
 }
 
-const money = (n) => `$${Number(n ?? 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}`
 
 // Carga los datos del panel. Se saca del componente para poder pasarla
 // al hook como fetcher puro (sin capturar setState).
@@ -248,7 +248,7 @@ export default function InicioPage() {
               icon={Receipt}
               color={COLORS.warning}
               titulo={`${data.sinCobrar.length} servicio${data.sinCobrar.length !== 1 ? 's' : ''} sin cobrar`}
-              detalle={`${money(data.totalSinCobrar)} pendientes de cobro`}
+              detalle={`${formatearARS(data.totalSinCobrar)} pendientes de cobro`}
               to="/servicios"
             />
           )}
@@ -279,9 +279,9 @@ export default function InicioPage() {
           Este mes
         </h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard icon={DollarSign} label="Facturado"       valor={money(data.facturadoMes)} />
+          <KpiCard icon={DollarSign} label="Facturado"       valor={formatearARS(data.facturadoMes)} />
           <KpiCard icon={Wrench}     label="Servicios"       valor={data.cantServiciosMes} />
-          <KpiCard icon={TrendingUp} label="Ticket promedio" valor={money(data.ticketPromedio)} />
+          <KpiCard icon={TrendingUp} label="Ticket promedio" valor={formatearARS(data.ticketPromedio)} />
           <KpiCard icon={UserPlus}   label="Clientes nuevos" valor={data.clientesNuevos} />
         </div>
       </section>
@@ -308,7 +308,7 @@ export default function InicioPage() {
                     <td className="px-4 py-2.5 text-gray-200 font-mono text-xs">{s.vehiculos?.patente ?? '—'}</td>
                     <td className="px-4 py-2.5 text-gray-200">{s.tipo}</td>
                     <td className="px-4 py-2.5 text-gray-200">{formatFechaAR(s.fecha)}</td>
-                    <td className="px-4 py-2.5 text-yellow-500 font-medium">{money(s.importe)}</td>
+                    <td className="px-4 py-2.5 text-yellow-500 font-medium">{formatearARS(s.importe)}</td>
                   </tr>
                 ))}
               </tbody>

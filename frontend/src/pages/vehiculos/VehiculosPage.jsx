@@ -5,6 +5,7 @@ import logger from '@/lib/logger'
 import { notificar } from '@/lib/notificar'
 import { emitirVehiculoActualizado } from '@/lib/eventos'
 import { normalizarPatente, detectarTipoPatente, MAX_LEN_PATENTE } from '@/lib/patente'
+import { formatearKm } from '@/lib/formato'
 import { normalizarNombre } from '@/lib/texto'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
@@ -331,7 +332,7 @@ export default function VehiculosPage() {
                       <td className="px-4 py-3 text-gray-200">{tipoLabels[v.tipo_patente] ?? v.tipo_patente}</td>
                       <td className="px-4 py-3 text-gray-200">{v.marca} {v.modelo}</td>
                       <td className="px-4 py-3 text-gray-200">{v.anio ?? '—'}</td>
-                      <td className="px-4 py-3 text-gray-200">{v.km?.toLocaleString('es-AR')} km</td>
+                      <td className="px-4 py-3 text-gray-200">{formatearKm(v.km)}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-2">
                           {!v.activo ? (
@@ -391,7 +392,7 @@ export default function VehiculosPage() {
                   </div>
                   <div className="flex justify-between gap-3">
                     <span className="text-gray-300 text-xs uppercase tracking-wider">KM</span>
-                    <span className="text-gray-100">{v.km?.toLocaleString('es-AR')} km</span>
+                    <span className="text-gray-100">{formatearKm(v.km)}</span>
                   </div>
                 </div>
 

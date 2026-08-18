@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
 import { notificar } from '@/lib/notificar'
 import { emitirServicioActualizado } from '@/lib/eventos'
+import { formatearARS, formatearKm } from '@/lib/formato'
 import Button from '@/components/Button'
 import DataTable from '@/components/DataTable'
 import EmptyState from '@/components/EmptyState'
@@ -167,9 +168,9 @@ export default function ServiciosPage() {
                       <td className="px-4 py-3 text-gray-200 font-mono">{s.vehiculos?.patente} <span className="font-sans text-xs">{s.vehiculos?.marca} {s.vehiculos?.modelo}</span></td>
                       <td className="px-4 py-3 text-gray-200">{s.tipo}</td>
                       <td className="px-4 py-3 text-gray-200">{s.fecha.split('-').reverse().join('/')}</td>
-                      <td className="px-4 py-3 text-gray-200">{s.km?.toLocaleString('es-AR')} km</td>
+                      <td className="px-4 py-3 text-gray-200">{formatearKm(s.km)}</td>
                       <td className="px-4 py-3 text-gray-200">
-                        {s.importe != null ? `$${Number(s.importe).toLocaleString('es-AR')}` : '—'}
+                        {s.importe != null ? formatearARS(s.importe) : '—'}
                       </td>
                       <td className="px-4 py-3">
                         {s.cobrado ? (
@@ -234,12 +235,12 @@ export default function ServiciosPage() {
                   )}
                   <div className="flex justify-between gap-3">
                     <span className="text-gray-300 text-xs uppercase tracking-wider">KM</span>
-                    <span className="text-gray-100">{s.km?.toLocaleString('es-AR')} km</span>
+                    <span className="text-gray-100">{formatearKm(s.km)}</span>
                   </div>
                   <div className="flex justify-between gap-3">
                     <span className="text-gray-300 text-xs uppercase tracking-wider">Importe</span>
                     <span className="text-gray-100 font-medium">
-                      {s.importe != null ? `$${Number(s.importe).toLocaleString('es-AR')}` : '—'}
+                      {s.importe != null ? formatearARS(s.importe) : '—'}
                     </span>
                   </div>
                 </div>

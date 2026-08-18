@@ -6,6 +6,9 @@
 
 import { normalizarTelefono } from './telefono'
 
+/** Base URL del deep-link oficial de WhatsApp (Meta). */
+export const WHATSAPP_BASE_URL = 'https://wa.me'
+
 /**
  * Arma la URL de wa.me con el mensaje pre-cargado.
  * Devuelve null si el teléfono no se puede normalizar (evita abrir
@@ -15,7 +18,7 @@ export function waMeUrl(telefono, mensaje) {
   const num = normalizarTelefono(telefono)
   if (!num) return null
   const texto = encodeURIComponent(mensaje ?? '')
-  return `https://wa.me/${num}?text=${texto}`
+  return `${WHATSAPP_BASE_URL}/${num}?text=${texto}`
 }
 
 /**
