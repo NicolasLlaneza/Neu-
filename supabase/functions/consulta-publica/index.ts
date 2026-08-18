@@ -27,14 +27,30 @@ const RATE_LIMIT_MAX = 30
 // Dominios desde los que aceptamos tokens de Turnstile. Sin este chequeo,
 // alguien que copie el site key (que es público) podría generar tokens
 // válidos desde su propio sitio y usarlos contra este endpoint.
-// Se configura con TURNSTILE_ALLOWED_HOSTNAMES (separados por coma) para
-// poder sumar el dominio definitivo sin redeployar la función.
+// Se configura con TURNSTILE_ALLOWED_HOSTNAMES (separados por coma).
+// Cada entrada puede ser:
+//   - Un hostname exacto: neumas.pages.dev
+//   - Un patrón con wildcard en el subdominio: *.neumas.pages.dev
+//     (matchea todos los preview deployments de Cloudflare Pages)
 const ALLOWED_HOSTNAMES = (
-  Deno.env.get('TURNSTILE_ALLOWED_HOSTNAMES') ?? 'neumas.pages.dev,localhost'
+  Deno.env.get('TURNSTILE_ALLOWED_HOSTNAMES') ?? 'neumas.pages.dev,*.neumas.pages.dev,localhost'
 )
   .split(',')
   .map(h => h.trim().toLowerCase())
   .filter(Boolean)
+
+// Precomputamos los patrones con wildcard como regex. El '*' se convierte en
+// [^.]+ para que matchee un solo nivel de subdominio (evita que *.foo.com
+// coincida con evil.attacker.foo.com.attacker.tld).
+const HOSTNAME_MATCHERS = ALLOWED_HOSTNAMES.map(pattern => {
+  if (!pattern.includes('*')) return { exact: pattern, regex: null as RegExp | null }
+  const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^.]+')
+  return { exact: null as string | null, regex: new RegExp(`^${escaped}$`) }
+})
+
+function isHostnameAllowed(hostname: string): boolean {
+  return HOSTNAME_MATCHERS.some(m => (m.exact ? m.exact === hostname : m.regex!.test(hostname)))
+}
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return preflight(req)
@@ -113,7 +129,7 @@ serve(async (req: Request) => {
   const conClaveDePrueba = verification?.metadata?.result_with_testing_key === true
   const tokenHostname = String(verification.hostname ?? '').toLowerCase()
 
-  if (!conClaveDePrueba && tokenHostname && !ALLOWED_HOSTNAMES.includes(tokenHostname)) {
+  if (!conClaveDePrueba && tokenHostname && !isHostnameAllowed(tokenHostname)) {
     return json({ error: 'Origen no autorizado' }, 403)
   }
 
