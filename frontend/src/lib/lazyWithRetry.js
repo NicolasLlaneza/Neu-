@@ -28,7 +28,12 @@ function esChunkLoadError(err) {
     err?.name === 'ChunkLoadError' ||
     msg.includes('Failed to fetch dynamically imported module') ||
     msg.includes('Loading chunk') ||
-    msg.includes('Importing a module script failed')
+    msg.includes('Importing a module script failed') ||
+    // Cuando el asset viejo ya no existe, Cloudflare Pages hace SPA
+    // fallback y devuelve index.html: el browser pide JS y recibe HTML.
+    msg.includes('is not a valid JavaScript MIME type') ||
+    msg.includes('Expected a JavaScript-or-Wasm module script') ||
+    msg.includes("Expected a JavaScript module script")
   )
 }
 
