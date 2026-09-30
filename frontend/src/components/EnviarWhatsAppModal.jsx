@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { MessageCircle, ExternalLink, Check, X, AlertTriangle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import logger from '@/lib/logger'
-import { abrirWhatsApp } from '@/lib/whatsapp'
+import { waMeUrl } from '@/lib/whatsapp'
 import { emitirNotifActualizada } from '@/lib/eventos'
 import { notificar } from '@/lib/notificar'
 import Modal from '@/components/Modal'
@@ -28,13 +28,17 @@ export default function EnviarWhatsAppModal({ notificacion, onEnviada, onClose }
   const cliente  = notificacion.clientes
   const telefono = cliente?.telefono ?? ''
   const nombre   = cliente?.nombre ?? '—'
+  // Calculamos la URL de wa.me acá para poder usarla como href real de un
+  // <a target="_blank">. Antes hacíamos window.open() y detectábamos el
+  // retorno para saber si "se abrió"; pero con noopener varios browsers
+  // devuelven null aunque la ventana sí se abre, y mostrábamos un falso
+  // error de popup blocker. Un anchor directo elimina el problema: el
+  // click abre la pestaña sin popup blocker y sin detección frágil.
+  const url = waMeUrl(telefono, notificacion.mensaje)
 
   function handleAbrirWhatsApp() {
-    const abrio = abrirWhatsApp(telefono, notificacion.mensaje)
-    if (!abrio) {
-      setError('No se pudo abrir WhatsApp. Revisá que el navegador no esté bloqueando pop-ups.')
-      return
-    }
+    // Se ejecuta DESPUÉS de que el navegador abrió el link (el <a>
+    // hace su trabajo primero). Nos limitamos a avanzar al paso 2.
     setError(null)
     setPaso('confirmar')
   }
@@ -117,7 +121,7 @@ export default function EnviarWhatsAppModal({ notificacion, onEnviada, onClose }
   }
 
   // ── Paso 1: instrucciones ────────────────────────────────────────
-  const puedeEnviar = !!telefono
+  const puedeEnviar = !!url
 
   return (
     <Modal title="Enviar por WhatsApp" onClose={onClose}>
@@ -167,16 +171,25 @@ export default function EnviarWhatsAppModal({ notificacion, onEnviada, onClose }
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancelar
           </Button>
-          <Button
-            type="button"
-            className="flex-1 justify-center"
-            onClick={handleAbrirWhatsApp}
-            disabled={!puedeEnviar}
-          >
-            <MessageCircle size={15} />
-            Abrir WhatsApp
-            <ExternalLink size={13} />
-          </Button>
+          {puedeEnviar ? (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={handleAbrirWhatsApp}
+              className="flex-1 inline-flex items-center justify-center gap-2 font-semibold uppercase tracking-wider rounded border transition-colors bg-red text-gray-100 hover:bg-red-bright border-transparent px-4 py-2.5 text-sm"
+            >
+              <MessageCircle size={15} />
+              Abrir WhatsApp
+              <ExternalLink size={13} />
+            </a>
+          ) : (
+            <Button type="button" className="flex-1 justify-center" disabled>
+              <MessageCircle size={15} />
+              Abrir WhatsApp
+              <ExternalLink size={13} />
+            </Button>
+          )}
         </div>
       </div>
     </Modal>

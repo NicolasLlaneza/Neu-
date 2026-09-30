@@ -13,22 +13,15 @@ export const WHATSAPP_BASE_URL = 'https://wa.me'
  * Arma la URL de wa.me con el mensaje pre-cargado.
  * Devuelve null si el teléfono no se puede normalizar (evita abrir
  * WhatsApp con un número basura).
+ *
+ * El consumidor debe usar esta URL como href de un <a target="_blank">
+ * — NO llamar window.open. Con noopener/noreferrer varios navegadores
+ * (Firefox, Safari, Brave con shields) devuelven null aunque la
+ * ventana sí se abra, y eso disparaba falsos "popup bloqueado".
  */
 export function waMeUrl(telefono, mensaje) {
   const num = normalizarTelefono(telefono)
   if (!num) return null
   const texto = encodeURIComponent(mensaje ?? '')
   return `${WHATSAPP_BASE_URL}/${num}?text=${texto}`
-}
-
-/**
- * Abre wa.me en una nueva pestaña. Devuelve true si se abrió,
- * false si el navegador la bloqueó (típicamente por popup blocker
- * cuando no fue disparada por un click directo del usuario).
- */
-export function abrirWhatsApp(telefono, mensaje) {
-  const url = waMeUrl(telefono, mensaje)
-  if (!url) return false
-  const win = window.open(url, '_blank', 'noopener,noreferrer')
-  return !!win
 }
