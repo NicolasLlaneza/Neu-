@@ -16,7 +16,6 @@ import EmptyState from '@/components/EmptyState'
 import TableSkeleton from '@/components/TableSkeleton'
 
 import { estadoCliente as estadoConfig } from '@/lib/badges'
-import { NOMBRE_LEGAL } from '@/lib/empresa'
 
 // Botón de pestaña reutilizable para el filtro por tipo
 function TabButton({ active, onClick, label, count }) {
@@ -126,7 +125,7 @@ function ClienteModal({ cliente, onSave, onClose }) {
           value={form.nombre}
           onChange={e => set('nombre', e.target.value)}
           error={errors.nombre}
-          placeholder={esEmpresa ? NOMBRE_LEGAL : 'Juan García'}
+          placeholder={esEmpresa ? 'Calper SA' : 'Juan García'}
         />
 
         <Input

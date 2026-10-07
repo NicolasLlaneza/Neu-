@@ -7,23 +7,16 @@
 //
 // IMPORTANTE: si cambiás un valor acá, actualizá también tailwind.config.cjs
 // para que las clases utilitarias sigan matcheando el mismo tono.
-// El color de marca además vive en styles/index.css (--color-marca).
-
-import { DEMO } from './demo'
-
-const MARCA = DEMO
-  ? { red: '#c2410c', redBright: '#f97316' }   // naranja genérico de la demo
-  : { red: '#910000', redBright: '#ff0000' }   // rojo Calper
 
 export const COLORS = {
   // Marca
-  red:      MARCA.red,
-  redBright:MARCA.redBright, // hover/focus
+  red:      '#910000',    // rojo Calper
+  redBright:'#ff0000',    // hover/focus
 
   // Semánticos (estado)
   success:  '#16a34a',    // verde — OK, enviada, cobrado
   warning:  '#d97706',    // ámbar — próximo, pendiente
-  danger:   MARCA.red,    // rojo — urgente, fallida (usamos el rojo de marca)
+  danger:   '#910000',    // rojo — urgente, fallida (usamos el rojo de marca)
   neutral:  '#666666',    // gris — nuevo
   muted:    '#555555',    // gris más oscuro — cancelada
 

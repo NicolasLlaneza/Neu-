@@ -9,13 +9,8 @@ import { CONTACTO_TALLER } from '@/lib/empresa'
 import { ROUTES } from '@/lib/routes'
 import Logo from '@/components/Logo'
 import Button from '@/components/Button'
-import { DEMO } from '@/lib/demo'
-import { patentesDeEjemplo } from '@/demo/mockSupabase'
 
 const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY
-
-// En la demo no hay captcha: el token es fijo y nunca se verifica.
-const TOKEN_INICIAL = DEMO ? 'demo' : null
 
 
 // step: 'search' → 'confirm' → 'results'
@@ -26,7 +21,7 @@ export default function ConsultaPublicaPage() {
   const [resultado, setResultado]   = useState(null)
   const [loading, setLoading]       = useState(false)
   const [error, setError]           = useState(null)
-  const [captchaToken, setCaptchaToken] = useState(TOKEN_INICIAL)
+  const [captchaToken, setCaptchaToken] = useState(null)
   const [preview, setPreview]       = useState(null)  // URL de foto en vista ampliada
   const [expandidos, setExpandidos] = useState(new Set()) // servicios abiertos (índices)
   const [busqueda, setBusqueda]     = useState('')       // filtro del historial
@@ -85,7 +80,7 @@ export default function ConsultaPublicaPage() {
 
     // Cada búsqueda "gasta" el token. Reseteamos para la siguiente.
     turnstileRef.current?.reset()
-    setCaptchaToken(TOKEN_INICIAL)
+    setCaptchaToken(null)
 
     if (error || data?.error) {
       const msg = data?.error ?? 'Ocurrió un error al consultar. Intentá de nuevo.'
@@ -107,7 +102,7 @@ export default function ConsultaPublicaPage() {
     setResultado(null)
     setStep('search')
     setPatente('')
-    setCaptchaToken(TOKEN_INICIAL)
+    setCaptchaToken(null)
     turnstileRef.current?.reset()
   }
 
@@ -151,34 +146,16 @@ export default function ConsultaPublicaPage() {
             </form>
 
             {/* Captcha */}
-            {!DEMO && (
-              <div className="flex justify-center">
-                <Turnstile
-                  ref={turnstileRef}
-                  siteKey={SITE_KEY}
-                  onSuccess={token => { setCaptchaToken(token); setError(null) }}
-                  onExpire={() => setCaptchaToken(null)}
-                  onError={() => { setCaptchaToken(null); setError('Error en la verificación. Recargá la página.') }}
-                  options={{ theme: 'dark', language: 'es' }}
-                />
-              </div>
-            )}
-
-            {DEMO && (
-              <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-gray-200">
-                <span>Demo · probá con:</span>
-                {patentesDeEjemplo().map(p => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => { setPatente(p); setError(null) }}
-                    className="font-mono tracking-widest border border-dark-400 rounded px-2.5 py-1.5 text-gray-100 hover:border-red transition-colors"
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="flex justify-center">
+              <Turnstile
+                ref={turnstileRef}
+                siteKey={SITE_KEY}
+                onSuccess={token => { setCaptchaToken(token); setError(null) }}
+                onExpire={() => setCaptchaToken(null)}
+                onError={() => { setCaptchaToken(null); setError('Error en la verificación. Recargá la página.') }}
+                options={{ theme: 'dark', language: 'es' }}
+              />
+            </div>
 
             {error && (
               <p className="text-red-bright text-sm text-center">{error}</p>
