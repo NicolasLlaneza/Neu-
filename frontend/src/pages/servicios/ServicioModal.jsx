@@ -22,6 +22,7 @@ import Select from '@/components/Select'
 import Textarea from '@/components/Textarea'
 import Modal from '@/components/Modal'
 import SearchSelect from '@/components/SearchSelect'
+import { NOMBRE_LEGAL } from '@/lib/empresa'
 
 // FotoGallery arrastra browser-image-compression (~28 KB gzip). Al
 // hacerlo lazy, esa librería solo se descarga cuando el usuario abre
@@ -441,7 +442,7 @@ export default function ServicioModal({ servicio, vehiculos, clientes, onSave, o
                     value={nuevoCliente.nombre}
                     onChange={e => setNC('nombre', e.target.value)}
                     error={errors.nc_nombre}
-                    placeholder={esEmpresa ? 'Calper SA' : 'Juan García'}
+                    placeholder={esEmpresa ? NOMBRE_LEGAL : 'Juan García'}
                   />
                   <Input
                     label="Teléfono"

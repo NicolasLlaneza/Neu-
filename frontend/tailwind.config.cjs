@@ -7,9 +7,11 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Color de marca: sale de variables CSS (styles/index.css) para que
+        // el modo demo pueda cambiarlo sin otro build de Tailwind.
         red: {
-          DEFAULT: '#910000',
-          bright: '#ff0000',
+          DEFAULT: 'rgb(var(--color-marca) / <alpha-value>)',
+          bright: 'rgb(var(--color-marca-bright) / <alpha-value>)',
         },
         // Tokens semánticos — matchear con COLORS en src/lib/colors.js
         success: '#16a34a',

@@ -5,6 +5,7 @@ import ProtectedRoute from '@/routes/ProtectedRoute'
 import AppLayout from '@/layouts/AppLayout'
 import { lazyWithRetry } from '@/lib/lazyWithRetry'
 import { ROUTES } from '@/lib/routes'
+import { DOMINIO_CONSULTA } from '@/lib/empresa'
 
 // El login se carga siempre (es la primera pantalla), así que va directo.
 import LoginPage from '@/pages/auth/LoginPage'
@@ -72,10 +73,10 @@ export default function App() {
             } />
 
             {/* Raíz → redirige según el host.
-                consulta.grupocalper.com es solo para clientes finales, así que
+                DOMINIO_CONSULTA es solo para clientes finales, así que
                 la raíz cae directo en la consulta pública. El resto va al panel. */}
             <Route path="/" element={
-              typeof window !== 'undefined' && window.location.hostname === 'consulta.grupocalper.com'
+              typeof window !== 'undefined' && window.location.hostname === DOMINIO_CONSULTA
                 ? <Navigate to={ROUTES.CONSULTA} replace />
                 : <Navigate to={ROUTES.INICIO} replace />
             } />

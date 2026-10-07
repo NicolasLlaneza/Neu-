@@ -5,6 +5,17 @@
 @tailwind utilities;
 
 @layer base {
+  /* Color de marca en canales RGB (los consume tailwind.config.cjs).
+     Matchear con COLORS.red / redBright en src/lib/colors.js. */
+  :root {
+    --color-marca: 145 0 0;         /* #910000 rojo Calper */
+    --color-marca-bright: 255 0 0;  /* #ff0000 */
+  }
+  /* Modo demo (lib/demo.js): naranja genérico de Bitácora */
+  :root[data-demo] {
+    --color-marca: 194 65 12;       /* #c2410c */
+    --color-marca-bright: 249 115 22; /* #f97316 */
+  }
   html {
     font-family: 'Montserrat', sans-serif;
   }
@@ -18,4 +29,4 @@
 /* Scrollbar personalizada */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: #0a0a0a; }
-::-webkit-scrollbar-thumb { background: #910000; border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: rgb(var(--color-marca)); border-radius: 2px; }
